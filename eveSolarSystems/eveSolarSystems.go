@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -37,55 +38,44 @@ const (
 )
 
 func init() {
-	SetEveSolarSystems()
+	setEveSolarSystems()
 }
 
-func PrintStagingSystemsBySelectedRange(shipRanges ShipRangeSettings, currentSolarSystem SolarSystem) {
+func GetSolarSystemById(systemId int64) SolarSystem {
+	return SolarSystemsByIdMap[systemId]
+}
+
+func GetSolarSystemByName(systemName string) SolarSystem {
+	return SolarSystemsByNameMap[strings.ToLower(systemName)]
+}
+
+func GetStagingSystemsBySelectedRangeText(shipRangesSettings ShipRangeSettings, currentSolarSystem SolarSystem) string {
 	systemsInRange := make(map[string]struct{})
-	if shipRanges.Blops {
-		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, blopsLightYears)
-		blopsStagingsInRange := getStagingsInRange(systemsInRange)
-		fmt.Println("Staging Systems in blops range:")
-		for s, o := range blopsStagingsInRange {
-			if s == "" {
-				fmt.Printf("No Staging System are in range of blops")
-			}
-			fmt.Printf("%s:%s\n", s, o)
-		}
+	shipRangesMap := map[string]float64{
+		"Blops":    blopsLightYears,
+		"Supers":   superCapitalLightYears,
+		"Capitals": capitalLightYears,
+		"Industry": industryLightYears,
 	}
-	if shipRanges.Supers {
-		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, superCapitalLightYears)
-		supersStagingsInRange := getStagingsInRange(systemsInRange)
-		fmt.Println("Staging Systems in super range:")
-		for s, o := range supersStagingsInRange {
+
+	returnText := ""
+	shipRanges := reflect.TypeOf(shipRangesSettings)
+	for i := 0; i < shipRanges.NumField(); i++ {
+		field := shipRanges.Field(i)
+		fieldString := fmt.Sprintf("%s", field.Name)
+		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, shipRangesMap[fieldString])
+		stagingsInRange := getStagingsInRange(systemsInRange)
+		returnText += fmt.Sprintf("Staging Systems in %s range:\n", fieldString)
+		for s, o := range stagingsInRange {
 			if s == "" {
-				fmt.Printf("No Staging System are in range of Supers")
+				returnText += fmt.Sprintf("No Staging System are in range of blops")
 			}
-			fmt.Printf("%s:%s\n", s, o)
+			returnText += fmt.Sprintf("%s: %s\n", s, o)
 		}
+		returnText += "\n"
 	}
-	if shipRanges.Capitals {
-		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, capitalLightYears)
-		capitalsStagingsInRange := getStagingsInRange(systemsInRange)
-		fmt.Println("Staging Systems in capital range:")
-		for s, o := range capitalsStagingsInRange {
-			if s == "" {
-				fmt.Printf("No Staging System are in range of Capitals")
-			}
-			fmt.Printf("%s:%s\n", s, o)
-		}
-	}
-	if shipRanges.Industry {
-		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, industryLightYears)
-		rorqsStagingsInRange := getStagingsInRange(systemsInRange)
-		fmt.Println("Staging Systems in rorqual range:")
-		for s, o := range rorqsStagingsInRange {
-			if s == "" {
-				fmt.Printf("No Staging System are in range of Rorqs")
-			}
-			fmt.Printf("%s:%s\n", s, o)
-		}
-	}
+
+	return returnText
 }
 
 // getStagingsInRange see if the user inputted solar system is in the map of systems in range
@@ -125,14 +115,6 @@ func getSystemsInRange(solarSystems map[string]SolarSystem, currentSystemData Co
 	return systemsInRange
 }
 
-func GetSolarSystemByName(systemName string) SolarSystem {
-	return SolarSystemsByNameMap[strings.ToLower(systemName)]
-}
-
-func GetSolarSystemById(systemId int64) SolarSystem {
-	return SolarSystemsByIdMap[systemId]
-}
-
 // distance3D calculate the distance in 3d space between 2 points
 func distance3D(p1, p2 Coordinates) float64 {
 	dx := bigMathSub(p1.X, p2.X)
@@ -153,7 +135,7 @@ func bigMathSub(x float64, y float64) float64 {
 }
 
 // SetEveSolarSystems Opens the hardcoded CSV to create a struct of the solar system data
-func SetEveSolarSystems() {
+func setEveSolarSystems() {
 	solarSystemsFile, err := os.OpenFile("eveSolarSystems/eveSolarSystems.csv", os.O_RDWR|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		panic(fmt.Sprintf("Error opening the solar system CSV: %s\n", err))
