@@ -28,29 +28,34 @@ func main() {
 		}
 	})
 
+	currentSolarSystemID, _ := ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
 	rangeSettings := eveSolarSystems.ShipRangeSettings{}
+	currentSystemText := widget.NewLabel("")
+	updateCurrentSystemName(currentSystemText, currentSolarSystemID)
+	stagingInRangeText := widget.NewLabel("")
 
 	// Create four checkboxes
 	blopsCheckBox := widget.NewCheck("Blops Range", func(checked bool) {
 		rangeSettings.Blops = checked
+		updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
 	})
 	superCheckBox := widget.NewCheck("Super Range", func(checked bool) {
 		rangeSettings.Supers = checked
+		updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
 	})
 	capitalCheckBox := widget.NewCheck("Capital Range", func(checked bool) {
 		rangeSettings.Capitals = checked
+		updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
 	})
 	industryCheckBox := widget.NewCheck("Industry Range", func(checked bool) {
 		rangeSettings.Industry = checked
+		updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
 	})
-
-	currentSystemText := widget.NewLabel("Current System:")
-	stagingInRangeText := widget.NewLabel("")
 
 	trackerWindow.SetContent(currentSystemText)
 	go func() {
 		for range time.Tick(time.Second * 10) {
-			currentSolarSystemID, _ := ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
+			currentSolarSystemID, _ = ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
 			if isNewSystem(currentSolarSystemID) {
 				updateCurrentSystemName(currentSystemText, currentSolarSystemID)
 				updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)

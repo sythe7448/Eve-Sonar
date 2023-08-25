@@ -59,20 +59,22 @@ func GetStagingSystemsBySelectedRangeText(shipRangesSettings ShipRangeSettings, 
 	}
 
 	returnText := ""
-	shipRanges := reflect.TypeOf(shipRangesSettings)
+	shipRanges := reflect.ValueOf(shipRangesSettings)
 	for i := 0; i < shipRanges.NumField(); i++ {
 		field := shipRanges.Field(i)
-		fieldString := fmt.Sprintf("%s", field.Name)
-		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, shipRangesMap[fieldString])
-		stagingsInRange := getStagingsInRange(systemsInRange)
-		returnText += fmt.Sprintf("Staging Systems in %s range:\n", fieldString)
-		for s, o := range stagingsInRange {
-			if s == "" {
-				returnText += fmt.Sprintf("No Staging System are in range of blops")
+		if field.Bool() {
+			fieldString := fmt.Sprintf("%s", shipRanges.Type().Field(i).Name)
+			systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, shipRangesMap[fieldString])
+			stagingsInRange := getStagingsInRange(systemsInRange)
+			returnText += fmt.Sprintf("Staging Systems in %s range:\n", fieldString)
+			for s, o := range stagingsInRange {
+				if s == "" {
+					returnText += fmt.Sprintf("No Staging System are in range of blops")
+				}
+				returnText += fmt.Sprintf("%s: %s\n", s, o)
 			}
-			returnText += fmt.Sprintf("%s: %s\n", s, o)
+			returnText += "\n"
 		}
-		returnText += "\n"
 	}
 
 	return returnText
