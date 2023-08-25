@@ -12,6 +12,7 @@ import (
 )
 
 type SolarSystem struct {
+	ID          int64
 	Name        string
 	Coordinates Coordinates
 	Sec         float64
@@ -25,7 +26,8 @@ type ShipRangeSettings struct {
 	Blops, Supers, Capitals, Industry bool
 }
 
-var SolarSystems = make(map[string]SolarSystem)
+var SolarSystemsByNameMap = make(map[string]SolarSystem)
+var SolarSystemsByIdMap = make(map[int64]SolarSystem)
 
 const (
 	capitalLightYears      float64 = 66225113308060300
@@ -41,34 +43,46 @@ func init() {
 func PrintStagingSystemsBySelectedRange(shipRanges ShipRangeSettings, currentSolarSystem SolarSystem) {
 	systemsInRange := make(map[string]struct{})
 	if shipRanges.Blops {
-		systemsInRange = getSystemsInRange(SolarSystems, currentSolarSystem.Coordinates, blopsLightYears)
+		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, blopsLightYears)
 		blopsStagingsInRange := getStagingsInRange(systemsInRange)
 		fmt.Println("Staging Systems in blops range:")
 		for s, o := range blopsStagingsInRange {
+			if s == "" {
+				fmt.Printf("No Staging System are in range of blops")
+			}
 			fmt.Printf("%s:%s\n", s, o)
 		}
 	}
 	if shipRanges.Supers {
-		systemsInRange = getSystemsInRange(SolarSystems, currentSolarSystem.Coordinates, superCapitalLightYears)
+		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, superCapitalLightYears)
 		supersStagingsInRange := getStagingsInRange(systemsInRange)
 		fmt.Println("Staging Systems in super range:")
 		for s, o := range supersStagingsInRange {
+			if s == "" {
+				fmt.Printf("No Staging System are in range of Supers")
+			}
 			fmt.Printf("%s:%s\n", s, o)
 		}
 	}
 	if shipRanges.Capitals {
-		systemsInRange = getSystemsInRange(SolarSystems, currentSolarSystem.Coordinates, capitalLightYears)
+		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, capitalLightYears)
 		capitalsStagingsInRange := getStagingsInRange(systemsInRange)
 		fmt.Println("Staging Systems in capital range:")
 		for s, o := range capitalsStagingsInRange {
+			if s == "" {
+				fmt.Printf("No Staging System are in range of Capitals")
+			}
 			fmt.Printf("%s:%s\n", s, o)
 		}
 	}
 	if shipRanges.Industry {
-		systemsInRange = getSystemsInRange(SolarSystems, currentSolarSystem.Coordinates, industryLightYears)
+		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, industryLightYears)
 		rorqsStagingsInRange := getStagingsInRange(systemsInRange)
 		fmt.Println("Staging Systems in rorqual range:")
 		for s, o := range rorqsStagingsInRange {
+			if s == "" {
+				fmt.Printf("No Staging System are in range of Rorqs")
+			}
 			fmt.Printf("%s:%s\n", s, o)
 		}
 	}
@@ -94,6 +108,7 @@ func getStagingSystems() map[string]string {
 	stagingSystems["Amamake"] = "Pandemic Legion"
 	stagingSystems["Jita"] = "Pubbies"
 	stagingSystems["Kurniainen"] = "Amarr Militia"
+	stagingSystems["Poitot"] = "The only named system in syndicate"
 
 	return stagingSystems
 }
@@ -108,6 +123,14 @@ func getSystemsInRange(solarSystems map[string]SolarSystem, currentSystemData Co
 	}
 
 	return systemsInRange
+}
+
+func GetSolarSystemByName(systemName string) SolarSystem {
+	return SolarSystemsByNameMap[strings.ToLower(systemName)]
+}
+
+func GetSolarSystemById(systemId int64) SolarSystem {
+	return SolarSystemsByIdMap[systemId]
 }
 
 // distance3D calculate the distance in 3d space between 2 points
@@ -157,32 +180,43 @@ func SetEveSolarSystems() {
 	// format data for fast access
 	for _, data := range csvData {
 		// remove WHs
-		if regex.MatchString(data[0]) {
+		if regex.MatchString(data[1]) {
 			continue
 		}
 		coords := make(map[int]float64)
-		for i := 1; i < 4; i++ {
+		for i := 2; i < 5; i++ {
 			coords[i], err = strconv.ParseFloat(data[i], 64)
 			if err != nil {
 				panic(fmt.Sprintf("Error Parsing %s coordinate float: %s\n", data[0], err))
 			}
 		}
-		sec, err := strconv.ParseFloat(data[4], 64)
+		sec, err := strconv.ParseFloat(data[5], 64)
 		if err != nil {
 			panic(fmt.Sprintf("Error Parsing %s sec float:  %s\n", data[0], err))
 		}
-		SolarSystems[strings.ToLower(data[0])] = SolarSystem{
-			Name: data[0],
+		id, err := strconv.ParseInt(data[0], 10, 64)
+		if err != nil {
+			panic(fmt.Sprintf("Error Parsing %s id float:  %s\n", data[0], err))
+		}
+		SolarSystemsByNameMap[strings.ToLower(data[1])] = SolarSystem{
+			ID:   id,
+			Name: data[1],
 			Sec:  sec,
 			Coordinates: Coordinates{
-				X: coords[1],
-				Y: coords[2],
-				Z: coords[3],
+				X: coords[2],
+				Y: coords[3],
+				Z: coords[4],
+			},
+		}
+		SolarSystemsByIdMap[id] = SolarSystem{
+			ID:   id,
+			Name: data[1],
+			Sec:  sec,
+			Coordinates: Coordinates{
+				X: coords[2],
+				Y: coords[3],
+				Z: coords[4],
 			},
 		}
 	}
-}
-
-func GetSolarSystem(systemName string) SolarSystem {
-	return SolarSystems[strings.ToLower(systemName)]
 }
