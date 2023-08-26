@@ -2,10 +2,12 @@ package eveSolarSystems
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/big"
 	"os"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -26,91 +28,152 @@ type ShipRangeSettings struct {
 	Blops, Supers, Capitals, Industry bool
 }
 
+type UserInputtedStagingSystem struct {
+	SystemName string `json:"system_name"`
+	OwnerName  string `json:"owner_name"`
+}
+
 var SolarSystemsByNameMap = make(map[string]SolarSystem)
 var SolarSystemsByIdMap = make(map[int64]SolarSystem)
+var StagingSystemsMap = make(map[string]UserInputtedStagingSystem)
 
 const (
 	capitalLightYears      float64 = 66225113308060300
 	superCapitalLightYears float64 = 56764382835480260
 	industryLightYears     float64 = 94607304725800420
 	blopsLightYears        float64 = 75685843780640350
+	stagingSystemFileName  string  = "eveSolarSystems/stagingSystems.json"
 )
 
 func init() {
-	SetEveSolarSystems()
+	setEveSolarSystems()
+	err := loadStagingSystems(stagingSystemFileName)
+	if err != nil {
+		fmt.Println("StagingSystems couldn't be loaded:", err)
+	}
 }
 
-func PrintStagingSystemsBySelectedRange(shipRanges ShipRangeSettings, currentSolarSystem SolarSystem) {
+func GetSolarSystemById(systemId int64) SolarSystem {
+	return SolarSystemsByIdMap[systemId]
+}
+
+func GetSolarSystemByName(systemName string) SolarSystem {
+	return SolarSystemsByNameMap[strings.ToLower(systemName)]
+}
+
+func GetStagingSystemsBySelectedRangeText(shipRangesSettings ShipRangeSettings, currentSolarSystem SolarSystem) string {
 	systemsInRange := make(map[string]struct{})
-	if shipRanges.Blops {
-		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, blopsLightYears)
-		blopsStagingsInRange := getStagingsInRange(systemsInRange)
-		fmt.Println("Staging Systems in blops range:")
-		for s, o := range blopsStagingsInRange {
-			if s == "" {
-				fmt.Printf("No Staging System are in range of blops")
+	shipRangesMap := map[string]float64{
+		"Blops":    blopsLightYears,
+		"Supers":   superCapitalLightYears,
+		"Capitals": capitalLightYears,
+		"Industry": industryLightYears,
+	}
+
+	returnText := ""
+	shipRanges := reflect.ValueOf(shipRangesSettings)
+	for i := 0; i < shipRanges.NumField(); i++ {
+		field := shipRanges.Field(i)
+		if field.Bool() {
+			fieldString := fmt.Sprintf("%s", shipRanges.Type().Field(i).Name)
+			systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, shipRangesMap[fieldString])
+			stagingsInRange := getStagingsInRange(systemsInRange)
+			returnText += fmt.Sprintf("Staging Systems in %s range:\n", fieldString)
+			for s, o := range stagingsInRange {
+				if s == "" {
+					returnText += fmt.Sprintf("No Staging System are in range of blops")
+				}
+				returnText += fmt.Sprintf("%s: %s\n", s, o)
 			}
-			fmt.Printf("%s:%s\n", s, o)
+			returnText += "\n"
 		}
 	}
-	if shipRanges.Supers {
-		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, superCapitalLightYears)
-		supersStagingsInRange := getStagingsInRange(systemsInRange)
-		fmt.Println("Staging Systems in super range:")
-		for s, o := range supersStagingsInRange {
-			if s == "" {
-				fmt.Printf("No Staging System are in range of Supers")
-			}
-			fmt.Printf("%s:%s\n", s, o)
+
+	return returnText
+}
+
+func ConvertStagingSystemsToSting() string {
+	systemsString := ""
+	if len(StagingSystemsMap) != 0 {
+		for _, system := range StagingSystemsMap {
+			systemsString += fmt.Sprintf("%s:%s\n", system.SystemName, system.OwnerName)
 		}
 	}
-	if shipRanges.Capitals {
-		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, capitalLightYears)
-		capitalsStagingsInRange := getStagingsInRange(systemsInRange)
-		fmt.Println("Staging Systems in capital range:")
-		for s, o := range capitalsStagingsInRange {
-			if s == "" {
-				fmt.Printf("No Staging System are in range of Capitals")
+	return systemsString
+}
+
+func ParseAndSaveStagingSystems(stagingSystemsText string) {
+	lines := strings.Split(stagingSystemsText, "\n")
+
+	var stagingSystems []UserInputtedStagingSystem
+
+	for _, line := range lines {
+		parts := strings.Split(line, ":")
+		if len(parts) == 2 {
+			system := UserInputtedStagingSystem{
+				SystemName: parts[0],
+				OwnerName:  parts[1],
 			}
-			fmt.Printf("%s:%s\n", s, o)
+			// Make sure system exists to be added
+			if len(GetSolarSystemByName(system.SystemName).Name) > 0 {
+				stagingSystems = append(stagingSystems, system)
+			}
 		}
 	}
-	if shipRanges.Industry {
-		systemsInRange = getSystemsInRange(SolarSystemsByNameMap, currentSolarSystem.Coordinates, industryLightYears)
-		rorqsStagingsInRange := getStagingsInRange(systemsInRange)
-		fmt.Println("Staging Systems in rorqual range:")
-		for s, o := range rorqsStagingsInRange {
-			if s == "" {
-				fmt.Printf("No Staging System are in range of Rorqs")
-			}
-			fmt.Printf("%s:%s\n", s, o)
-		}
+	setStagingSystems(stagingSystems)
+	err := saveStagingSystems(stagingSystems, stagingSystemFileName)
+	if err != nil {
+		fmt.Println("Error:", err)
 	}
 }
 
 // getStagingsInRange see if the user inputted solar system is in the map of systems in range
 func getStagingsInRange(systemsInRange map[string]struct{}) map[string]string {
-	stagingSystems := getStagingSystems()
 	stagingInRange := make(map[string]string)
-	for system, owner := range stagingSystems {
-		if _, exists := systemsInRange[strings.ToLower(system)]; exists {
-			stagingInRange[system] = owner
+	for _, userInputtedSystem := range StagingSystemsMap {
+		if _, exists := systemsInRange[strings.ToLower(userInputtedSystem.SystemName)]; exists {
+			stagingInRange[userInputtedSystem.SystemName] = userInputtedSystem.OwnerName
 		}
 	}
 
 	return stagingInRange
 }
 
-// getStagingSystems Get the user inputted staging solar system names
-func getStagingSystems() map[string]string {
-	// Temp harded coded inputs
-	stagingSystems := make(map[string]string)
-	stagingSystems["Amamake"] = "Pandemic Legion"
-	stagingSystems["Jita"] = "Pubbies"
-	stagingSystems["Kurniainen"] = "Amarr Militia"
-	stagingSystems["Poitot"] = "The only named system in syndicate"
+// SetStagingSystems Set the user inputted staging solar system names
+func setStagingSystems(stagingSystems []UserInputtedStagingSystem) {
+	for _, o := range stagingSystems {
+		StagingSystemsMap[GetSolarSystemByName(o.SystemName).Name] = o
+	}
+}
 
-	return stagingSystems
+func saveStagingSystems(stagingSystems []UserInputtedStagingSystem, filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	if err := encoder.Encode(stagingSystems); err != nil {
+		return err
+	}
+	return nil
+}
+
+func loadStagingSystems(filename string) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	var stagingSystems []UserInputtedStagingSystem
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&stagingSystems); err != nil {
+		return err
+	}
+	setStagingSystems(stagingSystems)
+	return nil
 }
 
 // getSystemsInRange make a map of the solar system names with in a radius to another solar system
@@ -123,14 +186,6 @@ func getSystemsInRange(solarSystems map[string]SolarSystem, currentSystemData Co
 	}
 
 	return systemsInRange
-}
-
-func GetSolarSystemByName(systemName string) SolarSystem {
-	return SolarSystemsByNameMap[strings.ToLower(systemName)]
-}
-
-func GetSolarSystemById(systemId int64) SolarSystem {
-	return SolarSystemsByIdMap[systemId]
 }
 
 // distance3D calculate the distance in 3d space between 2 points
@@ -153,7 +208,7 @@ func bigMathSub(x float64, y float64) float64 {
 }
 
 // SetEveSolarSystems Opens the hardcoded CSV to create a struct of the solar system data
-func SetEveSolarSystems() {
+func setEveSolarSystems() {
 	solarSystemsFile, err := os.OpenFile("eveSolarSystems/eveSolarSystems.csv", os.O_RDWR|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		panic(fmt.Sprintf("Error opening the solar system CSV: %s\n", err))

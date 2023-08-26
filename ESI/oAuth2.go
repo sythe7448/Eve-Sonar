@@ -31,19 +31,21 @@ type LocationInfo struct {
 }
 
 const (
-	RedirectURI = "http://localhost:8080/callback"
-	BaseURL     = "https://login.eveonline.com/oauth"
-	AuthURL     = BaseURL + "/authorize"
-	TokenURL    = BaseURL + "/token"
-	VerifyURL   = BaseURL + "/verify"
-	Scope       = "esi-location.read_location.v1"
-	APIBaseURL  = "https://esi.evetech.net/latest"
+	LocalBaseURI = "http://localhost:8080"
+	RedirectURI  = LocalBaseURI + "/callback"
+	EveBaseURL   = "https://login.eveonline.com/oauth"
+	AuthURL      = EveBaseURL + "/authorize"
+	TokenURL     = EveBaseURL + "/token"
+	VerifyURL    = EveBaseURL + "/verify"
+	Scope        = "esi-location.read_location.v1"
+	APIBaseURL   = "https://esi.evetech.net/latest"
 )
 
 var ClientID string
 var ClientSecret string
 var Character CharacterInfo
 var Tokens TokenResponse
+var Server *http.Server
 
 func init() {
 	err := godotenv.Load("ESI/.env") // Load environment variables from a .env file
@@ -54,37 +56,39 @@ func init() {
 	ClientSecret = os.Getenv("Client_SECRET")
 }
 
-func StartLogin() {
+func StartServer() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", startOAuth)
+	mux.HandleFunc("/", LoginUsingOAuth)
 	mux.HandleFunc("/callback", getCode)
-	server := &http.Server{
+	Server = &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
 	}
-	go func() {
-		fmt.Println("Server started")
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Println("Error:", err)
+	if !isServerRunning(Server) {
+		go func() {
+			fmt.Println("Server started")
+			if err := Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				fmt.Println("Error:", err)
+			}
+		}()
+
+		// Once we have the access token shutdown server
+		for len(Tokens.AccessToken) == 0 {
+			time.Sleep(1 * time.Second)
 		}
-	}()
 
-	// Once we have the access token shutdown server
-	for len(Tokens.AccessToken) == 0 {
-		time.Sleep(1 * time.Second)
+		fmt.Println("Shutting down server...")
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		defer cancel()
+		if err := Server.Shutdown(ctx); err != nil {
+			fmt.Println("Error shutting down:", err)
+		}
+		fmt.Println("Server shut down")
 	}
-
-	fmt.Println("Shutting down server...")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := server.Shutdown(ctx); err != nil {
-		fmt.Println("Error shutting down:", err)
-	}
-	fmt.Println("Server shut down")
-
 }
 
-func startOAuth(w http.ResponseWriter, r *http.Request) {
+func LoginUsingOAuth(w http.ResponseWriter, r *http.Request) {
 	conf := oauth2.Config{
 		ClientID:     ClientID,
 		ClientSecret: ClientSecret,
@@ -105,6 +109,7 @@ func getCode(w http.ResponseWriter, r *http.Request) {
 		// Exchange authorization code for access token
 		setAccessTokens(code)
 		setCharacterInformationFromToken(Tokens.AccessToken)
+		fmt.Fprintln(w, "Access Token Granted you can close this tab")
 	} else {
 		fmt.Fprintln(w, "No authorization code received.")
 	}
@@ -152,6 +157,13 @@ func setCharacterInformationFromToken(accessToken string) {
 	if err := json.NewDecoder(resp.Body).Decode(&Character); err != nil {
 		panic(err)
 	}
+}
+
+func isServerRunning(server *http.Server) bool {
+	// Send a request to the server and check if it's responding
+	client := &http.Client{Timeout: time.Second}
+	_, err := client.Get("http://localhost" + server.Addr)
+	return err == nil
 }
 
 func GetLocationId(accessToken string, characterID int64) (int64, error) {
