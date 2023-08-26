@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -27,7 +28,7 @@ type CharacterInfo struct {
 }
 
 type LocationInfo struct {
-	ID int64 `json:"solar_system_id"`
+	ID int `json:"solar_system_id"`
 }
 
 const (
@@ -88,27 +89,30 @@ func StartServer() {
 	}
 }
 
-func GetLocationId(accessToken string, characterID int64) (int64, error) {
+func GetLocationId(accessToken string, characterID int64) (string, error) {
+	if characterID == 0 {
+		return "", nil
+	}
 	reqUrl := APIBaseURL + fmt.Sprintf("/characters/%d/location/", characterID)
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	var location LocationInfo
 	if err := json.NewDecoder(resp.Body).Decode(&location); err != nil {
-		return 0, err
+		return "", err
 	}
 
-	systemName := location.ID
+	systemName := strconv.Itoa(location.ID)
 
 	return systemName, nil
 }

@@ -12,17 +12,22 @@ import (
 	"time"
 )
 
+type ShipRangeSettings struct {
+	Blops, Supers, Capitals, Industry bool
+}
+
 var rangeSettings = ShipRangeSettings{}
+var currentSolarSystemID string
+var currentSystemText = widget.NewLabel("")
 
 func BuildContainer(app fyne.App) *fyne.Container {
 	// Variables that are passed
-	currentSolarSystemID, _ := ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
-	currentSystemText := widget.NewLabel("")
+	currentSolarSystemID, _ = ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
 	updateCurrentSystemName(currentSystemText, currentSolarSystemID)
 	stagingInRangeText := widget.NewLabel("")
 
 	// Set each box
-	rangeSettingsBox := buildRangeSettingBox(app, currentSolarSystemID, stagingInRangeText)
+	rangeSettingsBox := buildRangeSettingBox(app, stagingInRangeText)
 	stagerSettingBox := buildStagerSettingsBox()
 	systemDataBox := container.NewVBox(
 		currentSystemText,
@@ -31,11 +36,15 @@ func BuildContainer(app fyne.App) *fyne.Container {
 
 	// Start a loop to update ranges every 10 seconds
 	go func() {
+		oldCurrentSolarSystemID := currentSolarSystemID
 		for range time.Tick(time.Second * 10) {
-			currentSolarSystemID, _ = ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
-			if isNewSystem(currentSolarSystemID) {
-				updateCurrentSystemName(currentSystemText, currentSolarSystemID)
-				updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
+			if len(ESI.Tokens.AccessToken) > 0 {
+				currentSolarSystemID, _ = ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
+				if oldCurrentSolarSystemID != currentSolarSystemID {
+					updateCurrentSystemName(currentSystemText, currentSolarSystemID)
+					updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
+					oldCurrentSolarSystemID = currentSolarSystemID
+				}
 			}
 		}
 	}()
@@ -51,7 +60,15 @@ func BuildContainer(app fyne.App) *fyne.Container {
 	return hbox
 }
 
-func buildRangeSettingBox(app fyne.App, currentSolarSystemID int64, stagingInRangeText *widget.Label) *fyne.Container {
+func buildRangeSettingBox(app fyne.App, stagingInRangeText *widget.Label) *fyne.Container {
+	//build manual system input box
+	systemInput := widget.NewEntry()
+	systemInput.SetPlaceHolder("Enter system here")
+	manualSystemSubmit := widget.NewButton("Check Ranges", func() {
+		currentSolarSystemID = QueryForSystemByName(systemInput.Text).ID
+		updateCurrentSystemName(currentSystemText, currentSolarSystemID)
+		updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
+	})
 	// Build check boxes for ranges
 	blopsCheckBox := widget.NewCheck("Blops Range", func(checked bool) {
 		rangeSettings.Blops = checked
@@ -83,11 +100,15 @@ func buildRangeSettingBox(app fyne.App, currentSolarSystemID int64, stagingInRan
 	})
 
 	rangeSettingsBox := container.NewVBox(
+		widget.NewLabel("Manual System Input"),
+		systemInput,
+		manualSystemSubmit,
 		widget.NewLabel("Range options:"),
 		blopsCheckBox,
 		superCheckBox,
 		capitalCheckBox,
 		industryCheckBox,
+		widget.NewLabel("Login to track location"),
 		loginButton,
 		widget.NewButton("Quit", func() {
 			app.Quit()
@@ -100,9 +121,9 @@ func buildRangeSettingBox(app fyne.App, currentSolarSystemID int64, stagingInRan
 
 func buildStagerSettingsBox() *fyne.Container {
 	stagers := widget.NewMultiLineEntry()
-	if len(StagingSystemsMap) != 0 {
-		stagers.SetText(ConvertStagingSystemsToSting())
-	}
+
+	stagers.SetText(ConvertStagingSystemsToSting())
+
 	stagers.SetPlaceHolder("system:owner")
 	stagerContainer := container.NewScroll(stagers)
 	stagerContainer.SetMinSize(fyne.NewSize(100, 300))
@@ -118,22 +139,19 @@ func buildStagerSettingsBox() *fyne.Container {
 	return stagerSettingBox
 }
 
-func isNewSystem(currentSolarSystemID int64) bool {
-	var oldCurrentSolarSystemID int64
-	if oldCurrentSolarSystemID != currentSolarSystemID {
-		currentSolarSystemID = oldCurrentSolarSystemID
-		return true
+func updateCurrentSystemName(currentSystemText *widget.Label, currentSolarSystemID string) {
+	if len(currentSolarSystemID) == 0 {
+		return
 	}
-	return false
-}
-
-func updateCurrentSystemName(currentSystemText *widget.Label, currentSolarSystemID int64) {
-	currentSolarSystemName := GetSolarSystemById(currentSolarSystemID).Name
+	currentSolarSystemName := QueryForSystemByID(currentSolarSystemID).Name
 	currentSystemText.SetText(fmt.Sprintf("Current System: %s", currentSolarSystemName))
 }
 
-func updateStagerText(rangeSettings ShipRangeSettings, rangeText *widget.Label, currentSolarSystemID int64) {
-	currentSolarSystem := GetSolarSystemById(currentSolarSystemID)
+func updateStagerText(rangeSettings ShipRangeSettings, rangeText *widget.Label, currentSolarSystemID string) {
+	if len(currentSolarSystemID) == 0 {
+		return
+	}
+	currentSolarSystem := QueryForSystemByID(currentSolarSystemID)
 	rangeText.SetText(GetStagingSystemsBySelectedRangeText(rangeSettings, currentSolarSystem))
 }
 
