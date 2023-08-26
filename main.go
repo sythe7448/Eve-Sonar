@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"log"
 	"net/url"
@@ -52,6 +53,17 @@ func main() {
 		updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
 	})
 
+	stagers := widget.NewMultiLineEntry()
+	if len(eveSolarSystems.StagingSystemsMap) != 0 {
+		stagers.SetText(eveSolarSystems.ConvertStagingSystemsToSting())
+	}
+	stagers.SetPlaceHolder("system:owner")
+	stagerContainer := container.NewScroll(stagers)
+	stagerContainer.SetMinSize(fyne.NewSize(100, 300))
+	saveStagers := widget.NewButton("Submit", func() {
+		eveSolarSystems.ParseAndSaveStagingSystems(stagers.Text)
+	})
+
 	trackerWindow.SetContent(currentSystemText)
 	go func() {
 		for range time.Tick(time.Second * 10) {
@@ -69,6 +81,16 @@ func main() {
 		superCheckBox,
 		capitalCheckBox,
 		industryCheckBox,
+		loginButton,
+		widget.NewButton("Quit", func() {
+			trackerApp.Quit()
+		}),
+	)
+
+	stagerSettingBox := container.NewVBox(
+		widget.NewLabel("Staging Systems\n system:owner \n new line for new entry"),
+		stagerContainer,
+		saveStagers,
 	)
 
 	systemDataWindow := container.NewVBox(
@@ -76,16 +98,12 @@ func main() {
 		stagingInRangeText,
 	)
 
-	loginWindow := container.NewVBox(
-		loginButton,
-		widget.NewButton("Quit", func() {
-			trackerApp.Quit()
-		}),
-	)
+	layout.NewHBoxLayout()
 
-	hbox := container.NewHBox(
-		loginWindow,
+	hbox := container.New(
+		layout.NewGridLayout(3),
 		rangeSettingsBox,
+		stagerSettingBox,
 		systemDataWindow,
 	)
 

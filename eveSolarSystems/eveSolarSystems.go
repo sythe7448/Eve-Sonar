@@ -2,6 +2,7 @@ package eveSolarSystems
 
 import (
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/big"
@@ -27,18 +28,29 @@ type ShipRangeSettings struct {
 	Blops, Supers, Capitals, Industry bool
 }
 
+type UserInputtedStagingSystem struct {
+	SystemName string `json:"system_name"`
+	OwnerName  string `json:"owner_name"`
+}
+
 var SolarSystemsByNameMap = make(map[string]SolarSystem)
 var SolarSystemsByIdMap = make(map[int64]SolarSystem)
+var StagingSystemsMap = make(map[string]UserInputtedStagingSystem)
 
 const (
 	capitalLightYears      float64 = 66225113308060300
 	superCapitalLightYears float64 = 56764382835480260
 	industryLightYears     float64 = 94607304725800420
 	blopsLightYears        float64 = 75685843780640350
+	stagingSystemFileName  string  = "eveSolarSystems/stagingSystems.json"
 )
 
 func init() {
 	setEveSolarSystems()
+	err := loadStagingSystems(stagingSystemFileName)
+	if err != nil {
+		fmt.Println("StagingSystems couldn't be loaded:", err)
+	}
 }
 
 func GetSolarSystemById(systemId int64) SolarSystem {
@@ -80,29 +92,88 @@ func GetStagingSystemsBySelectedRangeText(shipRangesSettings ShipRangeSettings, 
 	return returnText
 }
 
+func ConvertStagingSystemsToSting() string {
+	systemsString := ""
+	if len(StagingSystemsMap) != 0 {
+		for _, system := range StagingSystemsMap {
+			systemsString += fmt.Sprintf("%s:%s\n", system.SystemName, system.OwnerName)
+		}
+	}
+	return systemsString
+}
+
+func ParseAndSaveStagingSystems(stagingSystemsText string) {
+	lines := strings.Split(stagingSystemsText, "\n")
+
+	var stagingSystems []UserInputtedStagingSystem
+
+	for _, line := range lines {
+		parts := strings.Split(line, ":")
+		if len(parts) == 2 {
+			system := UserInputtedStagingSystem{
+				SystemName: parts[0],
+				OwnerName:  parts[1],
+			}
+			// Make sure system exists to be added
+			if len(GetSolarSystemByName(system.SystemName).Name) > 0 {
+				stagingSystems = append(stagingSystems, system)
+			}
+		}
+	}
+	setStagingSystems(stagingSystems)
+	err := saveStagingSystems(stagingSystems, stagingSystemFileName)
+	if err != nil {
+		fmt.Println("Error:", err)
+	}
+}
+
 // getStagingsInRange see if the user inputted solar system is in the map of systems in range
 func getStagingsInRange(systemsInRange map[string]struct{}) map[string]string {
-	stagingSystems := getStagingSystems()
 	stagingInRange := make(map[string]string)
-	for system, owner := range stagingSystems {
-		if _, exists := systemsInRange[strings.ToLower(system)]; exists {
-			stagingInRange[system] = owner
+	for _, userInputtedSystem := range StagingSystemsMap {
+		if _, exists := systemsInRange[strings.ToLower(userInputtedSystem.SystemName)]; exists {
+			stagingInRange[userInputtedSystem.SystemName] = userInputtedSystem.OwnerName
 		}
 	}
 
 	return stagingInRange
 }
 
-// getStagingSystems Get the user inputted staging solar system names
-func getStagingSystems() map[string]string {
-	// Temp harded coded inputs
-	stagingSystems := make(map[string]string)
-	stagingSystems["Amamake"] = "Pandemic Legion"
-	stagingSystems["Jita"] = "Pubbies"
-	stagingSystems["Kurniainen"] = "Amarr Militia"
-	stagingSystems["Poitot"] = "The only named system in syndicate"
+// SetStagingSystems Set the user inputted staging solar system names
+func setStagingSystems(stagingSystems []UserInputtedStagingSystem) {
+	for _, o := range stagingSystems {
+		StagingSystemsMap[GetSolarSystemByName(o.SystemName).Name] = o
+	}
+}
 
-	return stagingSystems
+func saveStagingSystems(stagingSystems []UserInputtedStagingSystem, filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	if err := encoder.Encode(stagingSystems); err != nil {
+		return err
+	}
+	return nil
+}
+
+func loadStagingSystems(filename string) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	var stagingSystems []UserInputtedStagingSystem
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&stagingSystems); err != nil {
+		return err
+	}
+	setStagingSystems(stagingSystems)
+	return nil
 }
 
 // getSystemsInRange make a map of the solar system names with in a radius to another solar system
