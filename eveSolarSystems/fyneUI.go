@@ -12,16 +12,17 @@ import (
 	"time"
 )
 
+var rangeSettings = ShipRangeSettings{}
+
 func BuildContainer(app fyne.App) *fyne.Container {
 	// Variables that are passed
 	currentSolarSystemID, _ := ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
 	currentSystemText := widget.NewLabel("")
 	updateCurrentSystemName(currentSystemText, currentSolarSystemID)
 	stagingInRangeText := widget.NewLabel("")
-	rangeSettings := ShipRangeSettings{}
 
 	// Set each box
-	rangeSettingsBox := buildRangeSettingBox(app, currentSolarSystemID, stagingInRangeText, rangeSettings)
+	rangeSettingsBox := buildRangeSettingBox(app, currentSolarSystemID, stagingInRangeText)
 	stagerSettingBox := buildStagerSettingsBox()
 	systemDataBox := container.NewVBox(
 		currentSystemText,
@@ -50,7 +51,7 @@ func BuildContainer(app fyne.App) *fyne.Container {
 	return hbox
 }
 
-func buildRangeSettingBox(app fyne.App, currentSolarSystemID int64, stagingInRangeText *widget.Label, rangeSettings ShipRangeSettings) *fyne.Container {
+func buildRangeSettingBox(app fyne.App, currentSolarSystemID int64, stagingInRangeText *widget.Label) *fyne.Container {
 	// Build check boxes for ranges
 	blopsCheckBox := widget.NewCheck("Blops Range", func(checked bool) {
 		rangeSettings.Blops = checked
