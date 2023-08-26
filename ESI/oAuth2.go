@@ -58,7 +58,7 @@ func init() {
 
 func StartServer() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", LoginUsingOAuth)
+	mux.HandleFunc("/", loginUsingOAuth)
 	mux.HandleFunc("/callback", getCode)
 	Server = &http.Server{
 		Addr:    ":8080",
@@ -88,7 +88,32 @@ func StartServer() {
 	}
 }
 
-func LoginUsingOAuth(w http.ResponseWriter, r *http.Request) {
+func GetLocationId(accessToken string, characterID int64) (int64, error) {
+	reqUrl := APIBaseURL + fmt.Sprintf("/characters/%d/location/", characterID)
+	req, err := http.NewRequest("GET", reqUrl, nil)
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	var location LocationInfo
+	if err := json.NewDecoder(resp.Body).Decode(&location); err != nil {
+		return 0, err
+	}
+
+	systemName := location.ID
+
+	return systemName, nil
+}
+
+func loginUsingOAuth(w http.ResponseWriter, r *http.Request) {
 	conf := oauth2.Config{
 		ClientID:     ClientID,
 		ClientSecret: ClientSecret,
@@ -164,29 +189,4 @@ func isServerRunning(server *http.Server) bool {
 	client := &http.Client{Timeout: time.Second}
 	_, err := client.Get("http://localhost" + server.Addr)
 	return err == nil
-}
-
-func GetLocationId(accessToken string, characterID int64) (int64, error) {
-	reqUrl := APIBaseURL + fmt.Sprintf("/characters/%d/location/", characterID)
-	req, err := http.NewRequest("GET", reqUrl, nil)
-	if err != nil {
-		return 0, err
-	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-
-	var location LocationInfo
-	if err := json.NewDecoder(resp.Body).Decode(&location); err != nil {
-		return 0, err
-	}
-
-	systemName := location.ID
-
-	return systemName, nil
 }
