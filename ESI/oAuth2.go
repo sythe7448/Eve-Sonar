@@ -4,22 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/joho/godotenv"
 	pkce "github.com/nirasan/go-oauth-pkce-code-verifier"
 	"golang.org/x/oauth2"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
 type TokenResponse struct {
-	AccessToken string `json:"access_token"`
-	RefreshToke string `json:"refresh_token"`
-	TokenType   string `json:"token_type"`
-	ExpiresIn   int    `json:"expires_in"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	TokenType    string `json:"token_type"`
+	ExpiresIn    int    `json:"expires_in"`
 }
 
 type CharacterInfo struct {
@@ -33,6 +31,7 @@ type LocationInfo struct {
 }
 
 const (
+	ClientID     = "667fb5ef212f4fffb9383ad23ce4050e"
 	LocalBaseURI = "http://localhost:8080"
 	RedirectURI  = LocalBaseURI + "/callback"
 	EveBaseURL   = "https://login.eveonline.com/oauth"
@@ -43,33 +42,24 @@ const (
 	APIBaseURL   = "https://esi.evetech.net/latest"
 )
 
-var ClientID string
-var ClientSecret string
+var codeChallenge string
+var codeVerifier string
 var Character CharacterInfo
 var Tokens TokenResponse
-var Server *http.Server
-
-func init() {
-	err := godotenv.Load("ESI/.env") // Load environment variables from a .env file
-	if err != nil {
-		panic(fmt.Sprintf("Error loading .env file:%s\n", err))
-	}
-	ClientID = os.Getenv("Client_ID")
-	ClientSecret = os.Getenv("Client_SECRET")
-}
+var server *http.Server
 
 func StartServer() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", loginUsingOAuth)
 	mux.HandleFunc("/callback", getCode)
-	Server = &http.Server{
+	server = &http.Server{
 		Addr:    ":8080",
 		Handler: mux,
 	}
-	if !isServerRunning(Server) {
+	if !isServerRunning(server) {
 		go func() {
-			fmt.Println("Server started")
-			if err := Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fmt.Println("server started")
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				fmt.Println("Error:", err)
 			}
 		}()
@@ -83,10 +73,10 @@ func StartServer() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		defer cancel()
-		if err := Server.Shutdown(ctx); err != nil {
+		if err := server.Shutdown(ctx); err != nil {
 			fmt.Println("Error shutting down:", err)
 		}
-		fmt.Println("Server shut down")
+		fmt.Println("server shut down")
 	}
 }
 
@@ -126,8 +116,10 @@ func loginUsingOAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Verifier String
+	codeVerifier = v.String()
 	// Create code_challenge with S256 method
-	codeChallenge := v.CodeChallengeS256()
+	codeChallenge = v.CodeChallengeS256()
 
 	conf := oauth2.Config{
 		ClientID:    ClientID,
@@ -138,36 +130,26 @@ func loginUsingOAuth(w http.ResponseWriter, r *http.Request) {
 			TokenURL: TokenURL,
 		},
 	}
-	codeChallengeURL := "&code_challenge=" + codeChallenge + "&code_challenge_method=S256"
-	authURL := conf.AuthCodeURL("state", oauth2.AccessTypeOffline) + codeChallengeURL
+	authURL := conf.AuthCodeURL(
+		"state",
+		oauth2.AccessTypeOffline,
+		oauth2.SetAuthURLParam("code_challenge", codeChallenge),
+		oauth2.SetAuthURLParam("code_challenge_method", "S256"),
+	)
 	http.Redirect(w, r, authURL, http.StatusSeeOther)
 }
 
-func getCode(w http.ResponseWriter, r *http.Request) {
-	code := r.URL.Query().Get("code")
-	if code != "" {
-		// Exchange authorization code for access token
-		setAccessTokens(code)
-		setCharacterInformationFromToken(Tokens.AccessToken)
-		fmt.Fprintln(w, "Access Token Granted you can close this tab")
-	} else {
-		fmt.Fprintln(w, "No authorization code received.")
-	}
-}
-
-func setAccessTokens(code string) {
+func refreshTokens() {
 	data := url.Values{}
-	data.Set("grant_type", "authorization_code")
-	data.Set("code", code)
-	data.Set("redirect_uri", RedirectURI)
-
+	data.Set("grant_type", "refresh_token")
+	data.Set("refresh_token", Tokens.RefreshToken)
+	data.Set("client_id", ClientID)
 	req, err := http.NewRequest("POST", TokenURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		panic(err)
 	}
-	req.SetBasicAuth(ClientID, ClientSecret)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
+	req.Header.Set("Host", "login.eveonline.com")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -180,7 +162,53 @@ func setAccessTokens(code string) {
 	}
 }
 
-func setCharacterInformationFromToken(accessToken string) {
+func getCode(w http.ResponseWriter, r *http.Request) {
+	code := r.URL.Query().Get("code")
+	if code != "" {
+		// Exchange authorization code for access token
+		setAccessTokens(code)
+		setCharacterInformation(Tokens.AccessToken)
+		fmt.Fprintln(w, "Access Token Granted you can close this tab")
+	} else {
+		fmt.Fprintln(w, "No authorization code received.")
+	}
+}
+
+func setAccessTokens(code string) {
+	data := url.Values{}
+	data.Set("grant_type", "authorization_code")
+	data.Set("code", code)
+	data.Set("client_id", ClientID)
+	data.Set("code_verifier", codeVerifier)
+
+	req, err := http.NewRequest("POST", TokenURL, strings.NewReader(data.Encode()))
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Host", "login.eveonline.com")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	if err := json.NewDecoder(resp.Body).Decode(&Tokens); err != nil {
+		panic(err)
+	}
+
+	// subroutine to refresh access token every 19 minutes
+	go func() {
+		for range time.Tick(time.Minute * 19) {
+			refreshTokens()
+		}
+	}()
+}
+
+// don't store this information in database
+func setCharacterInformation(accessToken string) {
 	req, err := http.NewRequest("GET", VerifyURL, nil)
 	if err != nil {
 		panic(err)

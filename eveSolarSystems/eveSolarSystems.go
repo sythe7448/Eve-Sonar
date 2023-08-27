@@ -67,6 +67,12 @@ func ConvertStagingSystemsToSting() string {
 }
 
 func ParseAndSaveStagingSystems(stagingSystemsText string) {
+	if stagingSystemsText == "" {
+		err := UpdateStagingSystems(nil)
+		if err != nil {
+			return
+		}
+	}
 	lines := strings.Split(stagingSystemsText, "\n")
 	stagingSystemsMap := make(map[string]string)
 	for _, line := range lines {

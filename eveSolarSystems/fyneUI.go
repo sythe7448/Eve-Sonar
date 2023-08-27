@@ -19,15 +19,15 @@ type ShipRangeSettings struct {
 var rangeSettings = ShipRangeSettings{}
 var currentSolarSystemID string
 var currentSystemText = widget.NewLabel("")
+var stagingInRangeText = widget.NewLabel("")
 
 func BuildContainer(app fyne.App) *fyne.Container {
 	// Variables that are passed
 	currentSolarSystemID, _ = ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
 	updateCurrentSystemName(currentSystemText, currentSolarSystemID)
-	stagingInRangeText := widget.NewLabel("")
 
 	// Set each box
-	rangeSettingsBox := buildRangeSettingBox(app, stagingInRangeText)
+	rangeSettingsBox := buildRangeSettingBox(app)
 	stagerSettingBox := buildStagerSettingsBox()
 	systemDataBox := container.NewVBox(
 		currentSystemText,
@@ -60,7 +60,7 @@ func BuildContainer(app fyne.App) *fyne.Container {
 	return hbox
 }
 
-func buildRangeSettingBox(app fyne.App, stagingInRangeText *widget.Label) *fyne.Container {
+func buildRangeSettingBox(app fyne.App) *fyne.Container {
 	//build manual system input box
 	systemInput := widget.NewEntry()
 	systemInput.SetPlaceHolder("Enter system here")
@@ -129,6 +129,7 @@ func buildStagerSettingsBox() *fyne.Container {
 	stagerContainer.SetMinSize(fyne.NewSize(100, 300))
 	saveStagers := widget.NewButton("Submit", func() {
 		ParseAndSaveStagingSystems(stagers.Text)
+		updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
 	})
 
 	stagerSettingBox := container.NewVBox(

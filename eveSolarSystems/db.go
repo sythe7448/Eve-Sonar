@@ -40,6 +40,10 @@ func init() {
 				return err
 			}
 		}
+		bucket, err = tx.CreateBucketIfNotExists([]byte(StagingSystemsBucket))
+		if err != nil {
+			return err
+		}
 		return nil
 	})
 
@@ -217,9 +221,9 @@ func getStagingSystems() map[string]string {
 	err = db.View(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(StagingSystemsBucket))
 		if bucket == nil {
-			return fmt.Errorf("bucket not found")
+			return nil
 		}
-		err := bucket.ForEach(func(system, owner []byte) error {
+		err = bucket.ForEach(func(system, owner []byte) error {
 			stagings[string(system)] = string(owner)
 			return nil
 		})
@@ -245,6 +249,12 @@ func UpdateStagingSystems(stagingSystems map[string]string) error {
 	defer db.Close()
 
 	err = db.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(SolarSystemsBucket))
+		if bucket != nil {
+			if err := tx.DeleteBucket([]byte(StagingSystemsBucket)); err != nil {
+				return err
+			}
+		}
 		bucket, err := tx.CreateBucketIfNotExists([]byte(StagingSystemsBucket))
 		if err != nil {
 			return err
