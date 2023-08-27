@@ -157,12 +157,7 @@ func buildAutoComplete(input *widget.Entry) *fyne.Container {
 		if isMultiLine {
 			lines := strings.Split(text, "\n")
 			currentLine := lines[len(lines)-1]
-			oldText := func() string {
-				if len(lines[:len(lines)-1]) == 1 {
-					return lines[0] + "\n"
-				}
-				return strings.Join(lines[:len(lines)-1], "\n")
-			}()
+			oldText := strings.Join(lines[:len(lines)-1], "\n") + "\n"
 			if len(currentLine) > 2 {
 				for _, suggestion := range getSystemSuggestions(currentLine) {
 					suggestionItem := widget.NewButton(suggestion, func() {
