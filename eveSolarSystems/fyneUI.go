@@ -1,6 +1,7 @@
 package eveSolarSystems
 
 import (
+	"eveSonar/api"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -8,7 +9,6 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"log"
 	"net/url"
-	"stagingRangeWarning/api"
 	"strings"
 	"time"
 )

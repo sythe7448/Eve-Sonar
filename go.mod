@@ -1,4 +1,4 @@
-module stagingRangeWarning
+module eveSonar
 
 go 1.21
 

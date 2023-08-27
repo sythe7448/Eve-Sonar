@@ -1,7 +1,7 @@
 ![Sample Image](https://raw.githubusercontent.com/sythe7448/EveStagingSystemRangeChecker/master/images/sample.png)
 
 ## What is it?
-It is a tool that allows you to build a list of staging systems and compare if another system is in range. You can either do this manually or login into to Eve ESI to have it track your characters location automatically.
+Eve Sonar is a tool that allows you to build a list of staging systems and compare if another system is in range. You can either do this manually or login into to Eve ESI to have it track your characters location automatically.
 
 ## Features
 - Range Checking for each jump range.
@@ -23,7 +23,7 @@ Contributions are welcome! If you'd like to contribute to the project, please fo
 5. Open a pull request to the main repository.
 
 ## Bug Reporting
-If you run into a bug please report it  through the project's [GitHub Issues interface](https://github.com/sythe7448/EveStagingSystemRangeChecker/issues). Thank you!
+If you run into a bug please report it  through the project's [GitHub Issues interface](https://github.com/sythe7448/Eve-Sonar/issues). Thank you!
 
 ## To Do
 - [ ] Make Github Actions to auto build releases.
