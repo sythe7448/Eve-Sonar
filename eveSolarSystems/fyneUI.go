@@ -144,6 +144,7 @@ func buildStagerSettingsBox() *fyne.Container {
 
 func updateCurrentSystemName(currentSystemText *widget.Label, currentSolarSystemID string) {
 	if len(currentSolarSystemID) == 0 {
+		currentSystemText.SetText(fmt.Sprintf("Current System: No System Found\n If this is a manual input check spelling"))
 		return
 	}
 	currentSolarSystemName := GetSystemByID(currentSolarSystemID).Name
