@@ -142,6 +142,41 @@ func GetSystemByName(name string) SolarSystem {
 	return SolarSystem{}
 }
 
+func GetAllSystems() []string {
+	var solarSystems []string
+
+	db, err := bolt.Open(dbFile, 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(solarSystemsBucket))
+		if bucket == nil {
+			return fmt.Errorf("bucket not found")
+		}
+
+		err := bucket.ForEach(func(key, value []byte) error {
+			var solarSystem SolarSystem
+			decoder := gob.NewDecoder(bytes.NewReader(value))
+			if err := decoder.Decode(&solarSystem); err != nil {
+				return err
+			}
+
+			solarSystems = append(solarSystems, solarSystem.Name)
+			return nil
+		})
+		return err
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return solarSystems
+}
+
 func GetStagingSystems() map[string]string {
 	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {

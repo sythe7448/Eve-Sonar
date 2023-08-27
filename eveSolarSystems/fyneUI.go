@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/url"
 	"stagingRangeWarning/api"
+	"strings"
 	"time"
 )
 
@@ -66,6 +67,22 @@ func buildRangeSettingBox(app fyne.App) *fyne.Container {
 	//build manual system input box
 	systemInput := widget.NewEntry()
 	systemInput.SetPlaceHolder("Enter system here")
+	suggestionList := container.NewVBox()
+	systemInput.OnChanged = func(text string) {
+		suggestionList.Objects = nil
+
+		// Filter and populate suggestions based on the user's input
+		if len(text) > 2 {
+			for _, suggestion := range getSystemSuggestions(text) {
+				suggestionItem := widget.NewButton(suggestion, func() {
+					systemInput.SetText(suggestion) // Set selected suggestion in the input field
+					suggestionList.Objects = nil
+				})
+				suggestionList.Add(suggestionItem)
+			}
+		}
+	}
+
 	manualSystemSubmit := widget.NewButton("Check Ranges", func() {
 		currentSolarSystemID = GetSystemByName(systemInput.Text).ID
 		updateCurrentSystemName(currentSystemText, currentSolarSystemID)
@@ -104,6 +121,7 @@ func buildRangeSettingBox(app fyne.App) *fyne.Container {
 	rangeSettingsBox := container.NewVBox(
 		widget.NewLabel("Manual System Input"),
 		systemInput,
+		suggestionList,
 		manualSystemSubmit,
 		widget.NewLabel("Range options:"),
 		blopsCheckBox,
@@ -140,6 +158,20 @@ func buildStagerSettingsBox() *fyne.Container {
 		saveStagers,
 	)
 	return stagerSettingBox
+}
+
+func getSystemSuggestions(prefix string) []string {
+	// Sample suggestions for demonstration
+	options := GetAllSystems()
+	var suggestions []string
+
+	for _, option := range options {
+		if strings.HasPrefix(strings.ToLower(option), strings.ToLower(prefix)) {
+			suggestions = append(suggestions, option)
+		}
+	}
+
+	return suggestions
 }
 
 func updateCurrentSystemName(currentSystemText *widget.Label, currentSolarSystemID string) {
