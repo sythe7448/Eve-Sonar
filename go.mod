@@ -5,6 +5,8 @@ go 1.21
 require (
 	fyne.io/fyne/v2 v2.3.5
 	github.com/joho/godotenv v1.5.1
+	github.com/nirasan/go-oauth-pkce-code-verifier v0.0.0-20220510032225-4f9f17eaec4c
+	go.etcd.io/bbolt v1.3.7
 	golang.org/x/oauth2 v0.11.0
 )
 
@@ -30,7 +32,6 @@ require (
 	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/tevino/abool v1.2.0 // indirect
 	github.com/yuin/goldmark v1.4.13 // indirect
-	go.etcd.io/bbolt v1.3.7 // indirect
 	golang.org/x/image v0.3.0 // indirect
 	golang.org/x/mobile v0.0.0-20211207041440-4e6c2922fdee // indirect
 	golang.org/x/net v0.14.0 // indirect

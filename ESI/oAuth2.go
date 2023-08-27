@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/joho/godotenv"
+	pkce "github.com/nirasan/go-oauth-pkce-code-verifier"
 	"golang.org/x/oauth2"
 	"net/http"
 	"net/url"
@@ -118,17 +119,27 @@ func GetLocationId(accessToken string, characterID int64) (string, error) {
 }
 
 func loginUsingOAuth(w http.ResponseWriter, r *http.Request) {
+	// Generate a random code verifier
+	v, err := pkce.CreateCodeVerifier()
+	if err != nil {
+		fmt.Println("Error generating code verifier:", err)
+		return
+	}
+
+	// Create code_challenge with S256 method
+	codeChallenge := v.CodeChallengeS256()
+
 	conf := oauth2.Config{
-		ClientID:     ClientID,
-		ClientSecret: ClientSecret,
-		RedirectURL:  RedirectURI,
-		Scopes:       []string{Scope},
+		ClientID:    ClientID,
+		RedirectURL: RedirectURI,
+		Scopes:      []string{Scope},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  AuthURL,
 			TokenURL: TokenURL,
 		},
 	}
-	authURL := conf.AuthCodeURL("state", oauth2.AccessTypeOffline)
+	codeChallengeURL := "&code_challenge=" + codeChallenge + "&code_challenge_method=S256"
+	authURL := conf.AuthCodeURL("state", oauth2.AccessTypeOffline) + codeChallengeURL
 	http.Redirect(w, r, authURL, http.StatusSeeOther)
 }
 
