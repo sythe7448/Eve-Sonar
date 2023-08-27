@@ -14,13 +14,13 @@ import (
 )
 
 const (
-	DbFile               string = "eveSolarSystems/tracker.db"
-	SolarSystemsBucket   string = "solarSystems"
-	StagingSystemsBucket string = "stagingSystems"
+	dbFile               string = "eveSolarSystems/tracker.db"
+	solarSystemsBucket   string = "solarSystems"
+	stagingSystemsBucket string = "stagingSystems"
 )
 
 func init() {
-	db, err := bolt.Open(DbFile, 0600, nil)
+	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -28,19 +28,19 @@ func init() {
 
 	// check if bucket exists and build solar system bucket
 	err = db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(SolarSystemsBucket))
+		bucket := tx.Bucket([]byte(solarSystemsBucket))
 		if bucket == nil {
-			bucket, err = tx.CreateBucketIfNotExists([]byte(SolarSystemsBucket))
+			bucket, err = tx.CreateBucketIfNotExists([]byte(solarSystemsBucket))
 			if err != nil {
 				return err
 			}
 			solarSystemMap := buildEveSolarSystemsMap()
-			err = buildSolarSystemBucket(solarSystemMap, tx, bucket)
+			err = buildSolarSystemBucket(solarSystemMap, bucket)
 			if err != nil {
 				return err
 			}
 		}
-		bucket, err = tx.CreateBucketIfNotExists([]byte(StagingSystemsBucket))
+		bucket, err = tx.CreateBucketIfNotExists([]byte(stagingSystemsBucket))
 		if err != nil {
 			return err
 		}
@@ -55,12 +55,12 @@ func init() {
 	}
 }
 
-func QueryForSystemByID(id string) SolarSystem {
+func GetSystemByID(id string) SolarSystem {
 	if id == "" {
 		return SolarSystem{}
 	}
 
-	db, err := bolt.Open(DbFile, 0600, nil)
+	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func QueryForSystemByID(id string) SolarSystem {
 	var retrievedSolarSystem SolarSystem
 
 	err = db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(SolarSystemsBucket))
+		bucket := tx.Bucket([]byte(solarSystemsBucket))
 		if bucket == nil {
 			return fmt.Errorf("bucket not found")
 		}
@@ -101,85 +101,17 @@ func QueryForSystemByID(id string) SolarSystem {
 	return SolarSystem{}
 }
 
-func QueryStagingsInRange(currentSystemData Coordinates, jumpRange float64) map[string]string {
-	db, err := bolt.Open(DbFile, 0600, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	stagingInRange := make(map[string]string)
-	systemsInRange := querySystemsInRange(currentSystemData, jumpRange, db)
-	err = db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(StagingSystemsBucket))
-		if bucket == nil {
-			return fmt.Errorf("bucket not found")
-		}
-		err = bucket.ForEach(func(system, owner []byte) error {
-			if _, exists := systemsInRange[strings.ToLower(string(system))]; exists {
-				stagingInRange[string(system)] = string(owner)
-			}
-			return nil
-		})
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return stagingInRange
-}
-
-func querySystemsInRange(currentSystemData Coordinates, jumpRange float64, db *bolt.DB) map[string]struct{} {
-	systemsInRange := make(map[string]struct{})
-	err := db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(SolarSystemsBucket))
-		if bucket == nil {
-			return fmt.Errorf("bucket not found")
-		}
-		err := bucket.ForEach(func(key, value []byte) error {
-			var solarSystem SolarSystem
-			decoder := gob.NewDecoder(bytes.NewReader(value))
-			if err := decoder.Decode(&solarSystem); err != nil {
-				return err
-			}
-			if solarSystem.Coordinates != currentSystemData && Distance3D(currentSystemData, solarSystem.Coordinates) <= jumpRange {
-				systemsInRange[strings.ToLower(solarSystem.Name)] = struct{}{}
-			}
-			return nil
-		})
-
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return systemsInRange
-}
-
-func QueryForSystemByName(name string) SolarSystem {
+func GetSystemByName(name string) SolarSystem {
 	var retrievedSolarSystem SolarSystem
 
-	db, err := bolt.Open(DbFile, 0600, nil)
+	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
 	err = db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(SolarSystemsBucket))
+		bucket := tx.Bucket([]byte(solarSystemsBucket))
 		if bucket == nil {
 			return fmt.Errorf("bucket not found")
 		}
@@ -210,8 +142,8 @@ func QueryForSystemByName(name string) SolarSystem {
 	return SolarSystem{}
 }
 
-func getStagingSystems() map[string]string {
-	db, err := bolt.Open(DbFile, 0600, nil)
+func GetStagingSystems() map[string]string {
+	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -219,7 +151,7 @@ func getStagingSystems() map[string]string {
 
 	stagings := make(map[string]string)
 	err = db.View(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(StagingSystemsBucket))
+		bucket := tx.Bucket([]byte(stagingSystemsBucket))
 		if bucket == nil {
 			return nil
 		}
@@ -242,20 +174,20 @@ func getStagingSystems() map[string]string {
 }
 
 func UpdateStagingSystems(stagingSystems map[string]string) error {
-	db, err := bolt.Open(DbFile, 0600, nil)
+	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
 	err = db.Update(func(tx *bolt.Tx) error {
-		bucket := tx.Bucket([]byte(SolarSystemsBucket))
+		bucket := tx.Bucket([]byte(solarSystemsBucket))
 		if bucket != nil {
-			if err := tx.DeleteBucket([]byte(StagingSystemsBucket)); err != nil {
+			if err := tx.DeleteBucket([]byte(stagingSystemsBucket)); err != nil {
 				return err
 			}
 		}
-		bucket, err := tx.CreateBucketIfNotExists([]byte(StagingSystemsBucket))
+		bucket, err := tx.CreateBucketIfNotExists([]byte(stagingSystemsBucket))
 		if err != nil {
 			return err
 		}
@@ -277,7 +209,79 @@ func UpdateStagingSystems(stagingSystems map[string]string) error {
 	return nil
 }
 
-func buildSolarSystemBucket(solarSystemsByIdMap map[string]SolarSystem, tx *bolt.Tx, bucket *bolt.Bucket) error {
+// GetStagingsInRange Get all user inputted stagings in range.
+func GetStagingsInRange(currentSystemData Coordinates, jumpRange float64) map[string]string {
+	db, err := bolt.Open(dbFile, 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	stagingInRange := make(map[string]string)
+	systemsInRange := getSystemsInRange(currentSystemData, jumpRange, db)
+	err = db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(stagingSystemsBucket))
+		if bucket == nil {
+			return fmt.Errorf("bucket not found")
+		}
+		err = bucket.ForEach(func(system, owner []byte) error {
+			if _, exists := systemsInRange[strings.ToLower(string(system))]; exists {
+				stagingInRange[string(system)] = string(owner)
+			}
+			return nil
+		})
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return stagingInRange
+}
+
+// getSystemsInRange used to get systems in a range from current system.
+// Only used in GetStagingsInRange to get staging in range.
+func getSystemsInRange(currentSystemData Coordinates, jumpRange float64, db *bolt.DB) map[string]struct{} {
+	systemsInRange := make(map[string]struct{})
+	err := db.View(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte(solarSystemsBucket))
+		if bucket == nil {
+			return fmt.Errorf("bucket not found")
+		}
+		err := bucket.ForEach(func(key, value []byte) error {
+			var solarSystem SolarSystem
+			decoder := gob.NewDecoder(bytes.NewReader(value))
+			if err := decoder.Decode(&solarSystem); err != nil {
+				return err
+			}
+			if solarSystem.Coordinates != currentSystemData && Distance3D(currentSystemData, solarSystem.Coordinates) <= jumpRange {
+				systemsInRange[strings.ToLower(solarSystem.Name)] = struct{}{}
+			}
+			return nil
+		})
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return systemsInRange
+}
+
+// buildSolarSystemBucket saves the solar system map to a bucket to be used later
+func buildSolarSystemBucket(solarSystemsByIdMap map[string]SolarSystem, bucket *bolt.Bucket) error {
 	// Iterate through the map and store each struct
 	for id, solarSystem := range solarSystemsByIdMap {
 		// Serialize the struct using encoding/gob
@@ -297,7 +301,7 @@ func buildSolarSystemBucket(solarSystemsByIdMap map[string]SolarSystem, tx *bolt
 	return nil
 }
 
-// SetEveSolarSystems Opens the hardcoded CSV to create a struct of the solar system data
+// buildEveSolarSystemsMap Opens the hardcoded CSV to create a map of the solar system data
 func buildEveSolarSystemsMap() map[string]SolarSystem {
 	solarSystemsFile, err := os.OpenFile("eveSolarSystems/eveSolarSystems.csv", os.O_RDWR|os.O_CREATE, os.ModePerm)
 	if err != nil {

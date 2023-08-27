@@ -8,7 +8,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"log"
 	"net/url"
-	"stagingRangeWarning/ESI"
+	"stagingRangeWarning/api"
 	"time"
 )
 
@@ -16,14 +16,16 @@ type ShipRangeSettings struct {
 	Blops, Supers, Capitals, Industry bool
 }
 
+// variables used locally throughout these functions
 var rangeSettings = ShipRangeSettings{}
 var currentSolarSystemID string
 var currentSystemText = widget.NewLabel("")
 var stagingInRangeText = widget.NewLabel("")
 
+// BuildContainer build/design the main container for the app using fyne.
 func BuildContainer(app fyne.App) *fyne.Container {
 	// Variables that are passed
-	currentSolarSystemID, _ = ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
+	currentSolarSystemID, _ = api.GetLocationId(api.Tokens.AccessToken, api.Character.CharacterID)
 	updateCurrentSystemName(currentSystemText, currentSolarSystemID)
 
 	// Set each box
@@ -38,8 +40,8 @@ func BuildContainer(app fyne.App) *fyne.Container {
 	go func() {
 		oldCurrentSolarSystemID := currentSolarSystemID
 		for range time.Tick(time.Second * 10) {
-			if len(ESI.Tokens.AccessToken) > 0 {
-				currentSolarSystemID, _ = ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
+			if len(api.Tokens.AccessToken) > 0 {
+				currentSolarSystemID, _ = api.GetLocationId(api.Tokens.AccessToken, api.Character.CharacterID)
 				if oldCurrentSolarSystemID != currentSolarSystemID {
 					updateCurrentSystemName(currentSystemText, currentSolarSystemID)
 					updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
@@ -65,7 +67,7 @@ func buildRangeSettingBox(app fyne.App) *fyne.Container {
 	systemInput := widget.NewEntry()
 	systemInput.SetPlaceHolder("Enter system here")
 	manualSystemSubmit := widget.NewButton("Check Ranges", func() {
-		currentSolarSystemID = QueryForSystemByName(systemInput.Text).ID
+		currentSolarSystemID = GetSystemByName(systemInput.Text).ID
 		updateCurrentSystemName(currentSystemText, currentSolarSystemID)
 		updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
 	})
@@ -90,8 +92,8 @@ func buildRangeSettingBox(app fyne.App) *fyne.Container {
 	// Login Button
 	loginButton := widget.NewButton("Login to ESI", func() {
 		// URL to open
-		esiURL := ESI.LocalBaseURI
-		go ESI.StartServer()
+		esiURL := api.LocalBaseURI
+		go api.StartServer()
 		// Open the URL in the default web browser
 		err := openWebpage(esiURL, app)
 		if err != nil {
@@ -144,7 +146,7 @@ func updateCurrentSystemName(currentSystemText *widget.Label, currentSolarSystem
 	if len(currentSolarSystemID) == 0 {
 		return
 	}
-	currentSolarSystemName := QueryForSystemByID(currentSolarSystemID).Name
+	currentSolarSystemName := GetSystemByID(currentSolarSystemID).Name
 	currentSystemText.SetText(fmt.Sprintf("Current System: %s", currentSolarSystemName))
 }
 
@@ -152,7 +154,7 @@ func updateStagerText(rangeSettings ShipRangeSettings, rangeText *widget.Label, 
 	if len(currentSolarSystemID) == 0 {
 		return
 	}
-	currentSolarSystem := QueryForSystemByID(currentSolarSystemID)
+	currentSolarSystem := GetSystemByID(currentSolarSystemID)
 	rangeText.SetText(GetStagingSystemsBySelectedRangeText(rangeSettings, currentSolarSystem))
 }
 

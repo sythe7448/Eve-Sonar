@@ -26,6 +26,7 @@ const (
 	blopsLightYears        float64 = 75685843780640350
 )
 
+// GetStagingSystemsBySelectedRangeText Creates a text block to display staging systems based on selected ranges.
 func GetStagingSystemsBySelectedRangeText(shipRangesSettings ShipRangeSettings, currentSolarSystem SolarSystem) string {
 	shipRangesMap := map[string]float64{
 		"Blops":    blopsLightYears,
@@ -40,7 +41,7 @@ func GetStagingSystemsBySelectedRangeText(shipRangesSettings ShipRangeSettings, 
 		field := shipRanges.Field(i)
 		if field.Bool() {
 			fieldString := fmt.Sprintf("%s", shipRanges.Type().Field(i).Name)
-			stagingsInRange := QueryStagingsInRange(currentSolarSystem.Coordinates, shipRangesMap[fieldString])
+			stagingsInRange := GetStagingsInRange(currentSolarSystem.Coordinates, shipRangesMap[fieldString])
 			returnText += fmt.Sprintf("Staging Systems in %s range:\n", fieldString)
 			for s, o := range stagingsInRange {
 				if s == "" {
@@ -55,9 +56,10 @@ func GetStagingSystemsBySelectedRangeText(shipRangesSettings ShipRangeSettings, 
 	return returnText
 }
 
+// ConvertStagingSystemsToSting converts map back to user input text. Used on app load.
 func ConvertStagingSystemsToSting() string {
 	systemsString := ""
-	stagingSystemsMap := getStagingSystems()
+	stagingSystemsMap := GetStagingSystems()
 	if len(stagingSystemsMap) != 0 {
 		for system, owner := range stagingSystemsMap {
 			systemsString += fmt.Sprintf("%s:%s\n", system, owner)
@@ -66,6 +68,7 @@ func ConvertStagingSystemsToSting() string {
 	return systemsString
 }
 
+// ParseAndSaveStagingSystems parse user input and validate it before sending to be saved to bolt
 func ParseAndSaveStagingSystems(stagingSystemsText string) {
 	if stagingSystemsText == "" {
 		err := UpdateStagingSystems(nil)
@@ -79,7 +82,7 @@ func ParseAndSaveStagingSystems(stagingSystemsText string) {
 		parts := strings.Split(line, ":")
 		if len(parts) == 2 {
 			// Make sure system exists to be added
-			exists := QueryForSystemByName(parts[0]).Name
+			exists := GetSystemByName(parts[0]).Name
 			if len(exists) > 0 {
 				stagingSystemsMap[parts[0]] = parts[1]
 			}
@@ -91,7 +94,7 @@ func ParseAndSaveStagingSystems(stagingSystemsText string) {
 	}
 }
 
-// distance3D calculate the distance in 3d space between 2 points
+// Distance3D calculate the distance in 3d space between 2 points
 func Distance3D(p1, p2 Coordinates) float64 {
 	dx := bigMathSub(p1.X, p2.X)
 	dy := bigMathSub(p1.Y, p2.Y)
