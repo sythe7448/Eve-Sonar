@@ -67,21 +67,8 @@ func buildRangeSettingBox(app fyne.App) *fyne.Container {
 	//build manual system input box
 	systemInput := widget.NewEntry()
 	systemInput.SetPlaceHolder("Enter system here")
-	suggestionList := container.NewVBox()
-	systemInput.OnChanged = func(text string) {
-		suggestionList.Objects = nil
-
-		// Filter and populate suggestions based on the user's input
-		if len(text) > 2 {
-			for _, suggestion := range getSystemSuggestions(text) {
-				suggestionItem := widget.NewButton(suggestion, func() {
-					systemInput.SetText(suggestion) // Set selected suggestion in the input field
-					suggestionList.Objects = nil
-				})
-				suggestionList.Add(suggestionItem)
-			}
-		}
-	}
+	// Auto complete
+	suggestionList := buildAutoComplete(systemInput)
 
 	manualSystemSubmit := widget.NewButton("Check Ranges", func() {
 		currentSolarSystemID = GetSystemByName(systemInput.Text).ID
@@ -143,10 +130,10 @@ func buildStagerSettingsBox() *fyne.Container {
 	stagers := widget.NewMultiLineEntry()
 
 	stagers.SetText(ConvertStagingSystemsToSting())
-
 	stagers.SetPlaceHolder("system:owner")
+	suggestionList := buildAutoComplete(stagers)
 	stagerContainer := container.NewScroll(stagers)
-	stagerContainer.SetMinSize(fyne.NewSize(100, 300))
+	stagerContainer.SetMinSize(fyne.NewSize(100, 350))
 	saveStagers := widget.NewButton("Submit", func() {
 		ParseAndSaveStagingSystems(stagers.Text)
 		updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
@@ -154,10 +141,50 @@ func buildStagerSettingsBox() *fyne.Container {
 
 	stagerSettingBox := container.NewVBox(
 		widget.NewLabel("Staging Systems\n system:owner \n new line for new entry"),
+		suggestionList,
 		stagerContainer,
 		saveStagers,
 	)
 	return stagerSettingBox
+}
+
+func buildAutoComplete(input *widget.Entry) *fyne.Container {
+	suggestionList := container.NewVBox()
+	input.OnChanged = func(text string) {
+		suggestionList.Objects = nil
+		isMultiLine := input.MultiLine
+		// Filter and populate suggestions based on the user's input
+		if isMultiLine {
+			lines := strings.Split(text, "\n")
+			currentLine := lines[len(lines)-1]
+			oldText := func() string {
+				if len(lines[:len(lines)-1]) == 1 {
+					return lines[0] + "\n"
+				}
+				return strings.Join(lines[:len(lines)-1], "\n")
+			}()
+			if len(currentLine) > 2 {
+				for _, suggestion := range getSystemSuggestions(currentLine) {
+					suggestionItem := widget.NewButton(suggestion, func() {
+						input.SetText(oldText + suggestion) // Set selected suggestion with old selects in the input field
+						suggestionList.Objects = nil
+					})
+					suggestionList.Add(suggestionItem)
+				}
+			}
+		} else {
+			if len(text) > 2 {
+				for _, suggestion := range getSystemSuggestions(text) {
+					suggestionItem := widget.NewButton(suggestion, func() {
+						input.SetText(suggestion) // Set selected suggestion in the input field
+						suggestionList.Objects = nil
+					})
+					suggestionList.Add(suggestionItem)
+				}
+			}
+		}
+	}
+	return suggestionList
 }
 
 func getSystemSuggestions(prefix string) []string {
