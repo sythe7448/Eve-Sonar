@@ -153,33 +153,46 @@ func buildAutoComplete(input *widget.Entry) *fyne.Container {
 	input.OnChanged = func(text string) {
 		suggestionList.Objects = nil
 		isMultiLine := input.MultiLine
+		oldText := ""
 		// Filter and populate suggestions based on the user's input
 		if isMultiLine {
 			lines := strings.Split(text, "\n")
 			currentLine := lines[len(lines)-1]
-			oldText := strings.Join(lines[:len(lines)-1], "\n") + "\n"
+			oldText = func() string {
+				if len(lines[:len(lines)-1]) == 0 {
+					return ""
+				}
+				return strings.Join(lines[:len(lines)-1], "\n") + "\n"
+			}()
 			if len(currentLine) > 2 {
 				for _, suggestion := range getSystemSuggestions(currentLine) {
-					suggestionItem := widget.NewButton(suggestion, func() {
-						input.SetText(oldText + suggestion) // Set selected suggestion with old selects in the input field
-						suggestionList.Objects = nil
-					})
+					suggestionItem := widget.NewButton(suggestion, func() {})
+					suggestionItem.OnTapped = setText(suggestionItem, input, oldText, suggestionList, isMultiLine)
 					suggestionList.Add(suggestionItem)
 				}
 			}
 		} else {
 			if len(text) > 2 {
 				for _, suggestion := range getSystemSuggestions(text) {
-					suggestionItem := widget.NewButton(suggestion, func() {
-						input.SetText(suggestion) // Set selected suggestion in the input field
-						suggestionList.Objects = nil
-					})
+					suggestionItem := widget.NewButton(suggestion, func() {})
+					suggestionItem.OnTapped = setText(suggestionItem, input, oldText, suggestionList, isMultiLine)
 					suggestionList.Add(suggestionItem)
 				}
 			}
 		}
 	}
 	return suggestionList
+}
+
+func setText(button *widget.Button, input *widget.Entry, oldText string, suggestionList *fyne.Container, isMultiLine bool) func() {
+	return func() {
+		buttonText := button.Text
+		if isMultiLine {
+			buttonText += ":"
+		}
+		input.SetText(oldText + buttonText) // Set selected suggestion with old selects in the input field
+		suggestionList.Objects = nil
+	}
 }
 
 func getSystemSuggestions(prefix string) []string {
