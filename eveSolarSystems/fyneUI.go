@@ -8,21 +8,28 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"log"
 	"net/url"
-	"stagingRangeWarning/ESI"
+	"stagingRangeWarning/api"
 	"time"
 )
 
-var rangeSettings = ShipRangeSettings{}
+type ShipRangeSettings struct {
+	Blops, Supers, Capitals, Industry bool
+}
 
+// variables used locally throughout these functions
+var rangeSettings = ShipRangeSettings{}
+var currentSolarSystemID string
+var currentSystemText = widget.NewLabel("")
+var stagingInRangeText = widget.NewLabel("")
+
+// BuildContainer build/design the main container for the app using fyne.
 func BuildContainer(app fyne.App) *fyne.Container {
 	// Variables that are passed
-	currentSolarSystemID, _ := ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
-	currentSystemText := widget.NewLabel("")
+	currentSolarSystemID, _ = api.GetLocationId(api.Tokens.AccessToken, api.Character.CharacterID)
 	updateCurrentSystemName(currentSystemText, currentSolarSystemID)
-	stagingInRangeText := widget.NewLabel("")
 
 	// Set each box
-	rangeSettingsBox := buildRangeSettingBox(app, currentSolarSystemID, stagingInRangeText)
+	rangeSettingsBox := buildRangeSettingBox(app)
 	stagerSettingBox := buildStagerSettingsBox()
 	systemDataBox := container.NewVBox(
 		currentSystemText,
@@ -31,11 +38,15 @@ func BuildContainer(app fyne.App) *fyne.Container {
 
 	// Start a loop to update ranges every 10 seconds
 	go func() {
+		oldCurrentSolarSystemID := currentSolarSystemID
 		for range time.Tick(time.Second * 10) {
-			currentSolarSystemID, _ = ESI.GetLocationId(ESI.Tokens.AccessToken, ESI.Character.CharacterID)
-			if isNewSystem(currentSolarSystemID) {
-				updateCurrentSystemName(currentSystemText, currentSolarSystemID)
-				updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
+			if len(api.Tokens.AccessToken) > 0 {
+				currentSolarSystemID, _ = api.GetLocationId(api.Tokens.AccessToken, api.Character.CharacterID)
+				if oldCurrentSolarSystemID != currentSolarSystemID {
+					updateCurrentSystemName(currentSystemText, currentSolarSystemID)
+					updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
+					oldCurrentSolarSystemID = currentSolarSystemID
+				}
 			}
 		}
 	}()
@@ -51,7 +62,15 @@ func BuildContainer(app fyne.App) *fyne.Container {
 	return hbox
 }
 
-func buildRangeSettingBox(app fyne.App, currentSolarSystemID int64, stagingInRangeText *widget.Label) *fyne.Container {
+func buildRangeSettingBox(app fyne.App) *fyne.Container {
+	//build manual system input box
+	systemInput := widget.NewEntry()
+	systemInput.SetPlaceHolder("Enter system here")
+	manualSystemSubmit := widget.NewButton("Check Ranges", func() {
+		currentSolarSystemID = GetSystemByName(systemInput.Text).ID
+		updateCurrentSystemName(currentSystemText, currentSolarSystemID)
+		updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
+	})
 	// Build check boxes for ranges
 	blopsCheckBox := widget.NewCheck("Blops Range", func(checked bool) {
 		rangeSettings.Blops = checked
@@ -73,8 +92,8 @@ func buildRangeSettingBox(app fyne.App, currentSolarSystemID int64, stagingInRan
 	// Login Button
 	loginButton := widget.NewButton("Login to ESI", func() {
 		// URL to open
-		esiURL := ESI.LocalBaseURI
-		go ESI.StartServer()
+		esiURL := api.LocalBaseURI
+		go api.StartServer()
 		// Open the URL in the default web browser
 		err := openWebpage(esiURL, app)
 		if err != nil {
@@ -83,11 +102,15 @@ func buildRangeSettingBox(app fyne.App, currentSolarSystemID int64, stagingInRan
 	})
 
 	rangeSettingsBox := container.NewVBox(
+		widget.NewLabel("Manual System Input"),
+		systemInput,
+		manualSystemSubmit,
 		widget.NewLabel("Range options:"),
 		blopsCheckBox,
 		superCheckBox,
 		capitalCheckBox,
 		industryCheckBox,
+		widget.NewLabel("Login to track location"),
 		loginButton,
 		widget.NewButton("Quit", func() {
 			app.Quit()
@@ -100,14 +123,15 @@ func buildRangeSettingBox(app fyne.App, currentSolarSystemID int64, stagingInRan
 
 func buildStagerSettingsBox() *fyne.Container {
 	stagers := widget.NewMultiLineEntry()
-	if len(StagingSystemsMap) != 0 {
-		stagers.SetText(ConvertStagingSystemsToSting())
-	}
+
+	stagers.SetText(ConvertStagingSystemsToSting())
+
 	stagers.SetPlaceHolder("system:owner")
 	stagerContainer := container.NewScroll(stagers)
 	stagerContainer.SetMinSize(fyne.NewSize(100, 300))
 	saveStagers := widget.NewButton("Submit", func() {
 		ParseAndSaveStagingSystems(stagers.Text)
+		updateStagerText(rangeSettings, stagingInRangeText, currentSolarSystemID)
 	})
 
 	stagerSettingBox := container.NewVBox(
@@ -118,22 +142,19 @@ func buildStagerSettingsBox() *fyne.Container {
 	return stagerSettingBox
 }
 
-func isNewSystem(currentSolarSystemID int64) bool {
-	var oldCurrentSolarSystemID int64
-	if oldCurrentSolarSystemID != currentSolarSystemID {
-		currentSolarSystemID = oldCurrentSolarSystemID
-		return true
+func updateCurrentSystemName(currentSystemText *widget.Label, currentSolarSystemID string) {
+	if len(currentSolarSystemID) == 0 {
+		return
 	}
-	return false
-}
-
-func updateCurrentSystemName(currentSystemText *widget.Label, currentSolarSystemID int64) {
-	currentSolarSystemName := GetSolarSystemById(currentSolarSystemID).Name
+	currentSolarSystemName := GetSystemByID(currentSolarSystemID).Name
 	currentSystemText.SetText(fmt.Sprintf("Current System: %s", currentSolarSystemName))
 }
 
-func updateStagerText(rangeSettings ShipRangeSettings, rangeText *widget.Label, currentSolarSystemID int64) {
-	currentSolarSystem := GetSolarSystemById(currentSolarSystemID)
+func updateStagerText(rangeSettings ShipRangeSettings, rangeText *widget.Label, currentSolarSystemID string) {
+	if len(currentSolarSystemID) == 0 {
+		return
+	}
+	currentSolarSystem := GetSystemByID(currentSolarSystemID)
 	rangeText.SetText(GetStagingSystemsBySelectedRangeText(rangeSettings, currentSolarSystem))
 }
 
