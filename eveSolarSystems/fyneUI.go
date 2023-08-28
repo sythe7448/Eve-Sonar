@@ -1,12 +1,12 @@
 package eveSolarSystems
 
 import (
-	"eveSonar/api"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
+	"github.com/sythe7448/Eve-Sonar/api"
 	"log"
 	"net/url"
 	"strings"
