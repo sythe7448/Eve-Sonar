@@ -55,6 +55,6 @@ jobs:
         with:
           name: release-artifacts
           path: |
-            eveSonarWindows1.0.${{GITHUB_RUN_NUMBER}}.zip
-            eveSonarMac1.0.${{GITHUB_RUN_NUMBER}}.zip
-            eveSonarLinux1.0.${{GITHUB_RUN_NUMBER}}.zip
+            eveSonarWindows1.0.${{ github.run_number }}.zip
+            eveSonarMac1.0.${{ github.run_number }}.zip
+            eveSonarLinux1.0.${{ github.run_number }}.zip
