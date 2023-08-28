@@ -36,18 +36,21 @@ jobs:
       - name: Build Release
         run: |
           go build -o github.com/sythe7448/Eve-Sonar
-          fyne package -os windows -icon icon.png -output eveSonarWindows/eveSonar
-          fyne package -os darwin -icon icon.png -output eveSonarMac/eveSonar
-          fyne package -os linux -icon icon.png -output eveSonarLinux/eveSonar
+          fyne package -os windows -icon icon.ico
+          fyne package -os darwin -icon icon.ico
+          fyne package -os linux -icon icon.ico
 
       - name: Copy Files to Subdirectory
         run: |
-          cp eveSonar/eveSolarSystems/tracker.db eveSonarWindows/eveSolarSystems
-          cp eveSonar/eveSolarSystems/eveSolarSystems.csv eveSonarWindows/eveSolarSystems
-          cp eveSonar/eveSolarSystems/tracker.db eveSonarMac/eveSolarSystems
-          cp eveSonar/eveSolarSystems/eveSolarSystems.csv eveSonarMac/eveSolarSystems
-          cp eveSonar/eveSolarSystems/tracker.db eveSonarLinux/eveSolarSystems
-          cp eveSonar/eveSolarSystems/eveSolarSystems.csv eveSonarLinux/eveSolarSystems
+          cp Eve-Sonar/Eve-Sonar.exe eveSonarWindows
+          cp Eve-Sonar/eveSolarSystems/tracker.db eveSonarWindows/eveSolarSystems
+          cp Eve-Sonar/eveSolarSystems/eveSolarSystems.csv eveSonarWindows/eveSolarSystems
+          cp Eve-Sonar/Eve-Sonar.app eveSonarMac
+          cp Eve-Sonar/eveSolarSystems/tracker.db eveSonarMac/eveSolarSystems
+          cp Eve-Sonar/eveSolarSystems/eveSolarSystems.csv eveSonarMac/eveSolarSystems
+          cp Eve-Sonar/Eve-Sonar.tar.gz eveSonarLinux
+          cp Eve-Sonar/eveSolarSystems/tracker.db eveSonarLinux/eveSolarSystems
+          cp Eve-Sonar/eveSolarSystems/eveSolarSystems.csv eveSonarLinux/eveSolarSystems
 
       - name: Create ZIP Archive
         run: |
