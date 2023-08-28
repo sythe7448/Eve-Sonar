@@ -33,7 +33,7 @@ jobs:
 
       - name: Build Release
         run: |
-          go build -o eveSonar
+          go build -o github.com/sythe7448/Eve-Sonar
           fyne package -os windows -icon icon.png -output eveSonarWindows/eveSonar
           fyne package -os darwin -icon icon.png -output eveSonarMac/eveSonar
           fyne package -os linux -icon icon.png -output eveSonarLinux/eveSonar

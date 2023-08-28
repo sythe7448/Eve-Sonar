@@ -1,4 +1,4 @@
-module eveSonar
+module github.com/sythe7448/Eve-Sonar
 
 go 1.21
 

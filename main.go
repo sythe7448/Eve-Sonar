@@ -1,9 +1,9 @@
 package main
 
 import (
-	"eveSonar/eveSolarSystems"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/theme"
+	"github.com/sythe7448/Eve-Sonar/eveSolarSystems"
 )
 
 func main() {
