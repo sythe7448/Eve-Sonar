@@ -26,7 +26,7 @@ Contributions are welcome! If you'd like to contribute to the project, please fo
 If you run into a bug please report it  through the project's [GitHub Issues interface](https://github.com/sythe7448/Eve-Sonar/issues). Thank you!
 
 ## To Do
-- [ ] Make Github Actions to auto build releases.
+- [ ] Make GitHub Actions to auto build releases.
 - [ ] Improve the UI with colors and a better AutoComplete system.
 - [ ] Make tests to confirm everything works without having to manually test.
 - [ ] Add warning popup for the errors.
