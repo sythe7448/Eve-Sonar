@@ -19,6 +19,9 @@ jobs:
         with:
           go-version: '1.21'
 
+      - name: Install Linux Dependencies
+        run: sudo apt-get update && sudo apt-get install libgl1-mesa-dev libxcursor-dev libasound2-dev
+
       - name: Install Fyne CLI
         run: go get fyne.io/fyne/v2/cmd/fyne
 
