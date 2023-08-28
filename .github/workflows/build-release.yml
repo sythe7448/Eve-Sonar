@@ -23,7 +23,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev
 
       - name: Install Fyne CLI
-        run: go get fyne.io/fyne/v2/cmd/fyne
+        run: | 
+          go install fyne.io/fyne/v2/cmd/fyne@latest
+          fyne version
 
       - name: Create Subdirectory
         run: |
