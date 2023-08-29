@@ -1,4 +1,4 @@
-name: Build Eve-Sonar Releases
+name: Build Release
 
 on:
   push:
