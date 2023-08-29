@@ -1,4 +1,4 @@
-name: Build Release
+name: Build Eve-Sonar Releases
 
 on:
   push:
@@ -8,7 +8,11 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        go-version: ['1.21']
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - name: Checkout code
@@ -17,54 +21,37 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
+          go-version: ${{ matrix.go-version }}
 
       - name: Get dependencies
         run: sudo apt-get update && sudo apt-get install gcc libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev libx11-dev xorg-dev
+        if: ${{ runner.os == 'Linux' }}
 
       - name: Install Fyne CLI
         run: | 
           go install fyne.io/fyne/v2/cmd/fyne@latest
           fyne version
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+      - name: Build
+        run: fyne package -icon icon.ico
 
-      - name: Install Fyne Cross
-        run: |
-          go install fyne.io/fyne/v2/cmd/fyne-cross@latest
-          fyne-cross windows --pull
-
-      - name: Create Subdirectory
-        run: |
-          mkdir eveSonarLinux
-          mkdir eveSonarWindows
-
-      - name: Build Release
-        run: |
-          go build -o github.com/sythe7448/Eve-Sonar
-          fyne package -os linux -icon icon.ico
-          fyne-cross windows -icon icon.ico
-          
-
-      - name: Copy Files to Subdirectory
-        run: |
-          cp Eve-Sonar/Eve-Sonar.exe eveSonarWindows
-          cp Eve-Sonar/eveSolarSystems/tracker.db eveSonarWindows/eveSolarSystems
-          cp Eve-Sonar/eveSolarSystems/eveSolarSystems.csv eveSonarWindows/eveSolarSystems
-          cp Eve-Sonar/Eve-Sonar.tar.gz eveSonarLinux
-          cp Eve-Sonar/eveSolarSystems/tracker.db eveSonarLinux/eveSolarSystems
-          cp Eve-Sonar/eveSolarSystems/eveSolarSystems.csv eveSonarLinux/eveSolarSystems
-
-      - name: Create ZIP Archive
-        run: |
-          zip -r eveSonarWindows.zip eveSonarWindows
-          zip -r eveSonarLinux.zip eveSonarLinux
-
-      - name: Archive Artifacts
-        uses: actions/upload-artifact@v2
+      - name: Upload Go build results linux
+        uses: actions/upload-artifact@v3
+        if: ${{ runner.os == 'Linux' }}
         with:
-          name: release-artifacts
-          path: |
-            eveSonarWindows1.0.${{ github.run_number }}.zip
-            eveSonarLinux1.0.${{ github.run_number }}.zip
+          name: eve-sonar-linux
+          path: eve-sonar
+
+      - name: Upload Go build results windows
+        uses: actions/upload-artifact@v3
+        if: ${{ runner.os == 'Windows' }}
+        with:
+          name: eve-sonar-Windows
+          path: eve-sonar.exe
+
+      - name: Upload Go build results macos
+        uses: actions/upload-artifact@v3
+        if: ${{ runner.os == 'macOS' }}
+        with:
+          name: eve-sonar-macOS
+          path: eve-sonar
