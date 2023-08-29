@@ -27,27 +27,31 @@ jobs:
           go install fyne.io/fyne/v2/cmd/fyne@latest
           fyne version
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Install Fyne Cross
+        run: |
+          go install fyne.io/fyne/v2/cmd/fyne-cross@latest
+          fyne-cross windows --pull
+
       - name: Create Subdirectory
         run: |
-          mkdir eveSonarWindows
-          mkdir eveSonarMac
           mkdir eveSonarLinux
+          mkdir eveSonarWindows
 
       - name: Build Release
         run: |
           go build -o github.com/sythe7448/Eve-Sonar
-          fyne package -os windows -icon icon.ico
-          fyne package -os darwin -icon icon.ico
           fyne package -os linux -icon icon.ico
+          fyne-cross windows -icon icon.ico
+          
 
       - name: Copy Files to Subdirectory
         run: |
           cp Eve-Sonar/Eve-Sonar.exe eveSonarWindows
           cp Eve-Sonar/eveSolarSystems/tracker.db eveSonarWindows/eveSolarSystems
           cp Eve-Sonar/eveSolarSystems/eveSolarSystems.csv eveSonarWindows/eveSolarSystems
-          cp Eve-Sonar/Eve-Sonar.app eveSonarMac
-          cp Eve-Sonar/eveSolarSystems/tracker.db eveSonarMac/eveSolarSystems
-          cp Eve-Sonar/eveSolarSystems/eveSolarSystems.csv eveSonarMac/eveSolarSystems
           cp Eve-Sonar/Eve-Sonar.tar.gz eveSonarLinux
           cp Eve-Sonar/eveSolarSystems/tracker.db eveSonarLinux/eveSolarSystems
           cp Eve-Sonar/eveSolarSystems/eveSolarSystems.csv eveSonarLinux/eveSolarSystems
@@ -55,7 +59,6 @@ jobs:
       - name: Create ZIP Archive
         run: |
           zip -r eveSonarWindows.zip eveSonarWindows
-          zip -r eveSonarMac.zip eveSonarMac
           zip -r eveSonarLinux.zip eveSonarLinux
 
       - name: Archive Artifacts
@@ -64,5 +67,4 @@ jobs:
           name: release-artifacts
           path: |
             eveSonarWindows1.0.${{ github.run_number }}.zip
-            eveSonarMac1.0.${{ github.run_number }}.zip
             eveSonarLinux1.0.${{ github.run_number }}.zip
