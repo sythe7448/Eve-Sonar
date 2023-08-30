@@ -68,36 +68,42 @@ jobs:
           ls -a
         if: ${{ runner.os == 'macOS' }}
 
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ runner.os }} v1.0.${{ github.run_number }}
+          draft: false
+          prerelease: false
+
       - name: Upload Go build results linux
         uses: actions/upload-artifact@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS'}}
         with:
           name: eve-sonar-linux
           path: Eve-Sonar
 
       - name: Upload Go build results windows
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ runner.os == 'Windows' }}
         with:
           name: eve-sonar-Windows
           path: Eve-Sonar
 
       - name: Upload Go build results macos
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ runner.os == 'macOS' }}
         with:
           name: eve-sonar-macOS
           path: Eve-Sonar
 
 
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          files: ./eve-sonar-${{ runner.os }}
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ runner.os }} v1.0.${{ github.run_number }}
-          draft: false
-          prerelease: false
