@@ -71,10 +71,36 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: Eve-Sonar
           tag_name: ${{ github.ref }} ${{ runner.os }}
           release_name: Release ${{ runner.os }} v1.0.${{ github.run_number }}
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Go build results linux
+        uses: actions/upload-artifact@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ runner.os == 'Linux' || runner.os == 'macOS'}}
+        with:
+          name: eve-sonar-linux
+          path: Eve-Sonar
+
+      - name: Upload Go build results windows
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ runner.os == 'Windows' }}
+        with:
+          name: eve-sonar-Windows
+          path: Eve-Sonar
+
+      - name: Upload Go build results macos
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ runner.os == 'macOS' }}
+        with:
+          name: eve-sonar-macOS
+          path: Eve-Sonar
