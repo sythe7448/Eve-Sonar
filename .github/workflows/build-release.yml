@@ -57,7 +57,7 @@ jobs:
           ls -a
         if: ${{ runner.os == 'Linux' }}
 
-      - name: copy and zip files Linux
+      - name: copy and zip files macOS
         run: |
           mkdir Eve-Sonar
           mkdir Eve-Sonar/eveSolarSystems
@@ -72,17 +72,17 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
           release_name: Release ${{ runner.os }} v1.0.${{ github.run_number }}
+          tag_name: ${{ github.ref_name }}
           draft: false
           prerelease: false
 
       - name: Upload Go build results linux
         uses: actions/upload-artifact@v3
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS'}}
         with:
           name: eve-sonar-linux
@@ -91,7 +91,7 @@ jobs:
       - name: Upload Go build results windows
         uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ runner.os == 'Windows' }}
         with:
           name: eve-sonar-Windows
@@ -100,7 +100,7 @@ jobs:
       - name: Upload Go build results macos
         uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ runner.os == 'macOS' }}
         with:
           name: eve-sonar-macOS
