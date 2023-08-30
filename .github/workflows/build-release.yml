@@ -35,27 +35,45 @@ jobs:
       - name: Build
         run: fyne package -icon icon.ico
 
-      - name: check files for windows
-        run: dir
+      - name: copy and zip files Windows
+        run: |
+          mkdir Eve-Sonar
+          mkdir Eve-Sonar\eveSolarSystems
+          mv Eve-Sonar.exe ./Eve-Sonar
+          mv eveSolarSystems/tracker.db ./Eve-Sonar/eveSolarSystems
+          mv eveSolarSystems/eveSolarSystems.csv ./Eve-Sonar/eveSolarSystems
+          powershell Compress-Archive -Path Eve-Sonar -DestinationPath Eve-Sonar.zip
+          dir
         if: ${{ runner.os == 'Windows' }}
 
-      - name: check files for Linux/Mac
-        run: ls -a
+      - name: copy and zip files Linux
+        run: |
+          mkdir Eve-Sonar
+          mkdir Eve-Sonar/eveSolarSystems
+          move Eve-Sonar.exe C:\Eve-Sonar
+          move eveSolarSystems\tracker.db C:\Eve-Sonar\eveSolarSystems
+          move eveSolarSystems\eveSolarSystems.csv C:\Eve-Sonar\eveSolarSystems
+          zip Eve-Sonar.zip Eve-Sonar
+          ls -a
         if: ${{ runner.os == 'Linux' }}
+
+      - name: check files for Mac
+        run: ls -a
+        if: ${{ runner.os == 'macOS' }}
 
       - name: Upload Go build results linux
         uses: actions/upload-artifact@v3
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS'}}
         with:
           name: eve-sonar-linux
-          path: eve-sonar
+          path: Eve-Sonar.zip
 
       - name: Upload Go build results windows
         uses: actions/upload-artifact@v3
         if: ${{ runner.os == 'Windows' }}
         with:
           name: eve-sonar-Windows
-          path: eve-sonar.exe
+          path: Eve-Sonar.zip
 
       - name: Upload Go build results macos
         uses: actions/upload-artifact@v3
