@@ -39,9 +39,9 @@ jobs:
         run: |
           mkdir Eve-Sonar
           mkdir Eve-Sonar\eveSolarSystems
-          move Eve-Sonar.exe C:\Eve-Sonar
-          move eveSolarSystems\tracker.db C:\Eve-Sonar\eveSolarSystems
-          move eveSolarSystems\eveSolarSystems.csv C:\Eve-Sonar\eveSolarSystems
+          move Eve-Sonar.exe Eve-Sonar\
+          move eveSolarSystems\tracker.db Eve-Sonar\eveSolarSystems\
+          move eveSolarSystems\eveSolarSystems.csv Eve-Sonar\eveSolarSystems\
           powershell Compress-Archive -Path Eve-Sonar -DestinationPath Eve-Sonar.zip
           dir
         if: ${{ runner.os == 'Windows' }}
