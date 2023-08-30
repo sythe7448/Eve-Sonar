@@ -88,3 +88,16 @@ jobs:
         with:
           name: eve-sonar-macOS
           path: Eve-Sonar
+
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: ./eve-sonar-${{ runner.os }}
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ runner.os }} v1.0.${{ github.run_number }}
+          draft: false
+          prerelease: false
