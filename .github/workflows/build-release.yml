@@ -67,6 +67,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
 
       - name: Create Release
+        id: create_release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ runner.os }}/v1.0.${{ github.run_number }}
@@ -82,6 +83,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS'}}
         with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           name: eve-sonar-linux
           path: Eve-Sonar
 
@@ -91,6 +93,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ runner.os == 'Windows' }}
         with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           name: eve-sonar-Windows
           asset_path: Eve-Sonar\
 
@@ -100,5 +103,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ runner.os == 'macOS' }}
         with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
           name: eve-sonar-macOS
           asset_path: Eve-Sonar
