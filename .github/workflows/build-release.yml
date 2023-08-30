@@ -83,7 +83,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS'}}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
           name: eve-sonar-linux
           path: Eve-Sonar
 
@@ -95,7 +94,9 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           name: eve-sonar-Windows
+          asset_name: Eve-Sonar
           asset_path: Eve-Sonar\
+          asset_content_type: application/zip
 
       - name: Upload Go build results macos
         uses: actions/upload-release-asset@v1
@@ -105,4 +106,6 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           name: eve-sonar-macOS
+          asset_name: Eve-Sonar
           asset_path: Eve-Sonar
+          asset_content_type: application/zip
