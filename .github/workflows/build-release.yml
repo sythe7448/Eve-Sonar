@@ -73,18 +73,18 @@ jobs:
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS'}}
         with:
           name: eve-sonar-linux
-          path: Eve-Sonar.zip
+          path: Eve-Sonar
 
       - name: Upload Go build results windows
         uses: actions/upload-artifact@v3
         if: ${{ runner.os == 'Windows' }}
         with:
           name: eve-sonar-Windows
-          path: Eve-Sonar.zip
+          path: Eve-Sonar
 
       - name: Upload Go build results macos
         uses: actions/upload-artifact@v3
         if: ${{ runner.os == 'macOS' }}
         with:
           name: eve-sonar-macOS
-          path: Eve-Sonar.zip
+          path: Eve-Sonar
