@@ -50,15 +50,22 @@ jobs:
         run: |
           mkdir Eve-Sonar
           mkdir Eve-Sonar/eveSolarSystems
-          mv Eve-Sonar.exe ./Eve-Sonar
+          mv Eve-Sonar.tar.xz ./Eve-Sonar
           mv eveSolarSystems/tracker.db ./Eve-Sonar/eveSolarSystems
           mv eveSolarSystems/eveSolarSystems.csv ./Eve-Sonar/eveSolarSystems
-          zip Eve-Sonar.zip Eve-Sonar
+          zip -r Eve-Sonar.zip Eve-Sonar
           ls -a
         if: ${{ runner.os == 'Linux' }}
 
-      - name: check files for Mac
-        run: ls -a
+      - name: copy and zip files Linux
+        run: |
+          mkdir Eve-Sonar
+          mkdir Eve-Sonar/eveSolarSystems
+          mv Eve-Sonar.app ./Eve-Sonar
+          mv eveSolarSystems/tracker.db ./Eve-Sonar/eveSolarSystems
+          mv eveSolarSystems/eveSolarSystems.csv ./Eve-Sonar/eveSolarSystems
+          zip -r Eve-Sonar.zip Eve-Sonar
+          ls -a
         if: ${{ runner.os == 'macOS' }}
 
       - name: Upload Go build results linux
@@ -80,4 +87,4 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         with:
           name: eve-sonar-macOS
-          path: eve-sonar
+          path: Eve-Sonar.zip
