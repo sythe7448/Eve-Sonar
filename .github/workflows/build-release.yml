@@ -101,4 +101,4 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         with:
           name: eve-sonar-macOS
-          path: Eve-Sonar
+          asset_path: Eve-Sonar
