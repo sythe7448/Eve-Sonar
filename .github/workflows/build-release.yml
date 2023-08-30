@@ -83,7 +83,7 @@ jobs:
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS'}}
         with:
           name: eve-sonar-linux
-          asset_path: Eve-Sonar
+          path: Eve-Sonar
 
       - name: Upload Go build results windows
         uses: actions/upload-release-asset@v1
@@ -101,4 +101,4 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         with:
           name: eve-sonar-macOS
-          asset_path: Eve-Sonar
+          path: Eve-Sonar
