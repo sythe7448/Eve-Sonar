@@ -35,9 +35,17 @@ jobs:
       - name: Build
         run: fyne package -icon icon.ico
 
+      - name: check files for windows
+        run: dir
+        if: ${{ runner.os == 'Windows' }}
+
+      - name: check files for Linux/Mac
+        run: ls -a
+        if: ${{ runner.os == 'Linux' }}
+
       - name: Upload Go build results linux
         uses: actions/upload-artifact@v3
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ runner.os == 'Linux' || runner.os == 'macOS'}}
         with:
           name: eve-sonar-linux
           path: eve-sonar
