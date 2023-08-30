@@ -35,7 +35,7 @@ jobs:
       - name: Build
         run: fyne package -icon icon.ico
 
-      - name: copy and zip files Windows
+      - name: copy files to release dir Windows
         run: |
           mkdir Eve-Sonar
           mkdir Eve-Sonar\eveSolarSystems
@@ -46,25 +46,23 @@ jobs:
           dir
         if: ${{ runner.os == 'Windows' }}
 
-      - name: copy and zip files Linux
+      - name: copy files to release dir Linux
         run: |
           mkdir Eve-Sonar
           mkdir Eve-Sonar/eveSolarSystems
           mv Eve-Sonar.tar.xz ./Eve-Sonar
           mv eveSolarSystems/tracker.db ./Eve-Sonar/eveSolarSystems
           mv eveSolarSystems/eveSolarSystems.csv ./Eve-Sonar/eveSolarSystems
-          zip -r Eve-Sonar.zip Eve-Sonar
           ls -a
-        if: ${{ runner.os == 'Linux' }}
+        if: ${{ runner.os == 'Linux' || runner.os == 'macOS' }}
 
-      - name: copy and zip files macOS
+      - name: copy files to release dir Mac
         run: |
           mkdir Eve-Sonar
           mkdir Eve-Sonar/eveSolarSystems
           mv Eve-Sonar.app ./Eve-Sonar
           mv eveSolarSystems/tracker.db ./Eve-Sonar/eveSolarSystems
           mv eveSolarSystems/eveSolarSystems.csv ./Eve-Sonar/eveSolarSystems
-          zip -r Eve-Sonar.zip Eve-Sonar
           ls -a
         if: ${{ runner.os == 'macOS' }}
 
@@ -85,7 +83,7 @@ jobs:
         if: ${{ runner.os == 'Linux' || runner.os == 'macOS'}}
         with:
           name: eve-sonar-linux
-          path: Eve-Sonar
+          asset_path: Eve-Sonar
 
       - name: Upload Go build results windows
         uses: actions/upload-release-asset@v1
@@ -94,7 +92,7 @@ jobs:
         if: ${{ runner.os == 'Windows' }}
         with:
           name: eve-sonar-Windows
-          path: Eve-Sonar
+          asset_path: Eve-Sonar\
 
       - name: Upload Go build results macos
         uses: actions/upload-release-asset@v1
@@ -103,4 +101,4 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
         with:
           name: eve-sonar-macOS
-          path: Eve-Sonar
+          asset_path: Eve-Sonar
