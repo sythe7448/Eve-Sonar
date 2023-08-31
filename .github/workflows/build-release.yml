@@ -42,8 +42,6 @@ jobs:
           move Eve-Sonar.exe Eve-Sonar\
           move eveSolarSystems\tracker.db Eve-Sonar\eveSolarSystems\
           move eveSolarSystems\eveSolarSystems.csv Eve-Sonar\eveSolarSystems\
-          powershell Compress-Archive -Path Eve-Sonar -DestinationPath Eve-Sonar.zip
-          dir
         if: ${{ runner.os == 'Windows' }}
 
       - name: copy files to release dir Linux
@@ -53,7 +51,6 @@ jobs:
           mv Eve-Sonar.tar.xz ./Eve-Sonar
           mv eveSolarSystems/tracker.db ./Eve-Sonar/eveSolarSystems
           mv eveSolarSystems/eveSolarSystems.csv ./Eve-Sonar/eveSolarSystems
-          ls -a
         if: ${{ runner.os == 'Linux' }}
 
       - name: copy files to release dir Mac
@@ -64,47 +61,34 @@ jobs:
           mv eveSolarSystems/tracker.db ./Eve-Sonar/eveSolarSystems
           mv eveSolarSystems/eveSolarSystems.csv ./Eve-Sonar/eveSolarSystems
           zip -r Eve-Sonar.zip Eve-Sonar
-          ls -a
         if: ${{ runner.os == 'macOS' }}
 
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: Eve-Sonar-${{ runner.os }}
+          path: Eve-Sonar
+
+  wait-for-all:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: check location
+        run: ls -la
+
       - name: Create Release
-        id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ runner.os }}/v1.0.${{ github.run_number }}
+          files: |
+            artifacts/Eve-Sonar-ubuntu-latest.zip
+            artifacts/Eve-Sonar-windows-latest.zip
+            artifacts/Eve-Sonar-macos-latest.zip
+          tag_name: Eve-Sonar/v1.0.${{ github.run_number }}
           release_name: Release ${{ runner.os }} v1.0.${{ github.run_number }}
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Go build results linux
-        uses: actions/upload-artifact@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{ runner.os == 'Linux' || runner.os == 'macOS'}}
-        with:
-          name: eve-sonar-linux
-          path: Eve-Sonar
-
-      - name: Upload Go build results windows
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{ runner.os == 'Windows' }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_name: Eve-Sonar.zip
-          asset_path: Eve-Sonar.zip
-          asset_content_type: application/zip
-
-      - name: Upload Go build results macos
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{ runner.os == 'macOS' }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_name: Eve-Sonar.zip
-          asset_path: Eve-Sonar.zip
-          asset_content_type: application/zip
