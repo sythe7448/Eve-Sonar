@@ -81,7 +81,7 @@ jobs:
       - name: Download linux version
         uses: actions/download-artifact@v3
         with:
-          name: Eve-Sonar-Linux.zip
+          name: Eve-Sonar-Linux
 
       - name: check files
         run: ls -a
