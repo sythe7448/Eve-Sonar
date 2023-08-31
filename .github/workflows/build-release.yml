@@ -101,7 +101,6 @@ jobs:
             Eve-Sonar-macOS.zip
             Eve-Sonar-Windows.zip
           tag_name: Eve-Sonar/v1.0.${{ github.run_number }}
-          release_name: Release ${{ runner.os }} v1.0.${{ github.run_number }}
           draft: false
           prerelease: false
         env:
