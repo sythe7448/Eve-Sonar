@@ -64,7 +64,7 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: Eve-Sonar-${{ runner.os }}
           path: Eve-Sonar
@@ -73,19 +73,28 @@ jobs:
     needs: [build]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Download linux version
+        uses: actions/download-artifact@v3
+        with:
+          name: Eve-Sonar-Linux
 
-      - name: check location
-        run: ls -la
+      - name: Download macOS version
+        uses: actions/download-artifact@v3
+        with:
+          name: Eve-Sonar-macOS
+
+      - name: Download linux version
+        uses: actions/download-artifact@v3
+        with:
+          name: Eve-Sonar-Windows
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/Eve-Sonar-ubuntu-latest.zip
-            artifacts/Eve-Sonar-windows-latest.zip
-            artifacts/Eve-Sonar-macos-latest.zip
+            Eve-Sonar-Linux.zip
+            Eve-Sonar-macOS.zip
+            Eve-Sonar-Windows.zip
           tag_name: Eve-Sonar/v1.0.${{ github.run_number }}
           release_name: Release ${{ runner.os }} v1.0.${{ github.run_number }}
           draft: false
