@@ -3,6 +3,9 @@
 ## What is it?
 Eve Sonar is a tool that allows you to build a list of staging systems and compare if another system is in range. You can either do this manually or login into to Eve ESI to have it track your characters location automatically.
 
+## Installation
+Windows, macOS, and Linux zips are provided in [releases](https://github.com/sythe7448/Eve-Sonar/releases/). Just download and extract the zip to its own folder and run the application.
+
 ## Features
 - Range Checking for each jump range.
 - Saving staging system data to be reused each time the app is opened.
@@ -26,7 +29,7 @@ Contributions are welcome! If you'd like to contribute to the project, please fo
 If you run into a bug please report it  through the project's [GitHub Issues interface](https://github.com/sythe7448/Eve-Sonar/issues). Thank you!
 
 ## To Do
-- [ ] Make GitHub Actions to auto build releases.
+- [x] Make GitHub Actions to auto build releases.
 - [ ] Improve the UI with colors and a better AutoComplete system.
 - [ ] Make tests to confirm everything works without having to manually test.
 - [ ] Add warning popup for the errors.

@@ -83,24 +83,15 @@ jobs:
         with:
           name: Eve-Sonar-Linux
 
-      - name: check files
-        run: ls -a
-
       - name: Download macOS version
         uses: actions/download-artifact@v3
         with:
           name: Eve-Sonar-macOS
 
-      - name: check files
-        run: ls -a
-
       - name: Download linux version
         uses: actions/download-artifact@v3
         with:
           name: Eve-Sonar-Windows
-
-      - name: check files
-        run: ls -a
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
