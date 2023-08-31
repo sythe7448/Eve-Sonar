@@ -42,7 +42,7 @@ jobs:
           move Eve-Sonar.exe Eve-Sonar\
           move eveSolarSystems\tracker.db Eve-Sonar\eveSolarSystems\
           move eveSolarSystems\eveSolarSystems.csv Eve-Sonar\eveSolarSystems\
-          powershell Compress-Archive -Path Eve-Sonar -DestinationPath Eve-Sonar-Windows.zip
+          powershell Compress-Archive -Path Eve-Sonar -DestinationPath Eve-Sonar-${{ runner.os }}.zip
           dir
         if: ${{ runner.os == 'Windows' }}
 
@@ -53,7 +53,7 @@ jobs:
           mv Eve-Sonar.tar.xz ./Eve-Sonar
           mv eveSolarSystems/tracker.db ./Eve-Sonar/eveSolarSystems
           mv eveSolarSystems/eveSolarSystems.csv ./Eve-Sonar/eveSolarSystems
-          zip -r Eve-Sonar-Linux.zip Eve-Sonar
+          zip -r Eve-Sonar-${{ runner.os }}.zip Eve-Sonar
           ls -a
         if: ${{ runner.os == 'Linux' }}
 
@@ -64,7 +64,7 @@ jobs:
           mv Eve-Sonar.app ./Eve-Sonar
           mv eveSolarSystems/tracker.db ./Eve-Sonar/eveSolarSystems
           mv eveSolarSystems/eveSolarSystems.csv ./Eve-Sonar/eveSolarSystems
-          zip -r Eve-Sonar-Mac.zip Eve-Sonar
+          zip -r Eve-Sonar-${{ runner.os }}.zip Eve-Sonar
           ls -a
         if: ${{ runner.os == 'macOS' }}
 
@@ -81,12 +81,18 @@ jobs:
       - name: Download linux version
         uses: actions/download-artifact@v3
         with:
-          name: Eve-Sonar-Linux
+          name: Eve-Sonar-Linux.zip
+
+      - name: check files
+        run: ls -a
 
       - name: Download macOS version
         uses: actions/download-artifact@v3
         with:
           name: Eve-Sonar-macOS
+
+      - name: check files
+        run: ls -a
 
       - name: Download linux version
         uses: actions/download-artifact@v3
