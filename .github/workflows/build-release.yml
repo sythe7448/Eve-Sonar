@@ -42,6 +42,8 @@ jobs:
           move Eve-Sonar.exe Eve-Sonar\
           move eveSolarSystems\tracker.db Eve-Sonar\eveSolarSystems\
           move eveSolarSystems\eveSolarSystems.csv Eve-Sonar\eveSolarSystems\
+          powershell Compress-Archive -Path Eve-Sonar -DestinationPath Eve-Sonar-Windows.zip
+          dir
         if: ${{ runner.os == 'Windows' }}
 
       - name: copy files to release dir Linux
@@ -51,6 +53,8 @@ jobs:
           mv Eve-Sonar.tar.xz ./Eve-Sonar
           mv eveSolarSystems/tracker.db ./Eve-Sonar/eveSolarSystems
           mv eveSolarSystems/eveSolarSystems.csv ./Eve-Sonar/eveSolarSystems
+          zip -r Eve-Sonar-Linux.zip Eve-Sonar
+          ls -a
         if: ${{ runner.os == 'Linux' }}
 
       - name: copy files to release dir Mac
@@ -60,14 +64,15 @@ jobs:
           mv Eve-Sonar.app ./Eve-Sonar
           mv eveSolarSystems/tracker.db ./Eve-Sonar/eveSolarSystems
           mv eveSolarSystems/eveSolarSystems.csv ./Eve-Sonar/eveSolarSystems
-          zip -r Eve-Sonar.zip Eve-Sonar
+          zip -r Eve-Sonar-Mac.zip Eve-Sonar
+          ls -a
         if: ${{ runner.os == 'macOS' }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
         with:
           name: Eve-Sonar-${{ runner.os }}
-          path: Eve-Sonar
+          path: Eve-Sonar-${{ runner.os }}.zip
 
   wait-for-all:
     needs: [build]
@@ -87,6 +92,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: Eve-Sonar-Windows
+
+      - name: check files
+        run: ls -a
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
